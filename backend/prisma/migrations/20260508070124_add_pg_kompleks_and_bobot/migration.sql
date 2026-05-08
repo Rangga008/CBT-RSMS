@@ -1,0 +1,5 @@
+-- AlterEnum
+ALTER TYPE "QuestionType" ADD VALUE 'PG_KOMPLEKS';
+
+-- AlterTable
+ALTER TABLE "questions" ADD COLUMN     "bobot" DOUBLE PRECISION NOT NULL DEFAULT 1.0;

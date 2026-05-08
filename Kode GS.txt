@@ -1,0 +1,5076 @@
+// Ganti '1YspUY4r8hE0-pk6b0uh7rn8wiszZjom6G_7_ylHFEe0/edit?gid' dengan ID panjang dari URL Spreadsheet Anda
+const SS = SpreadsheetApp.openById('1YspUY4r8hE0-pk6b0uh7rn8wiszZjom6G_7_ylHFEe0');
+
+// --- KONFIGURASI KARTU UJIAN (GLOBAL) ---
+// Letakkan ID Template dan Folder di sini agar terbaca oleh semua fungsi
+const TEMPLATE_ID = 'ubah template id nya di sini'; 
+const FOLDER_ID   = '1p8Nlb7JIDqSiGDk0D2tCiS6pScJaFkP8';
+
+/* -----------------------------------------------------------
+   1. SETUP & DATABASE INITIALIZATION (UPDATED BS AKM SAMPLE)
+   ----------------------------------------------------------- */
+
+function initializeSheets() {
+  // 1. DEFINISI STRUKTUR KOLOM (SCHEMA)
+  const schema = {
+    'Users': ['UserID', 'Nama', 'Password', 'Role', 'Class', 'SessionToken', 'IsActive'],
+    'Exams': ['ExamID', 'Subject', 'Class', 'Date', 'Duration', 'PIN', 'Status', 'EndDate', 'ShuffleConfig'],
+    'Questions': ['QuestionID', 'ExamID', 'Type', 'Content', 'ImageURL', 'Options', 'CorrectAnswer', 'IsRequired'],
+    'Responses': ['ResponseID', 'UserID', 'ExamID', 'AnswersJSON', 'Score', 'StartTime', 'SubmitTime', 'Status'],
+    'Logs': ['LogID', 'UserID', 'ExamID', 'ViolationCount', 'Details', 'Timestamp'],
+    'Gambar': ['ImageID', 'FileName', 'DirectLink', 'Preview', 'FolderID', 'DateAdded'], 
+    'Konfigurasi': ['Key', 'Value'],
+    'Master_Data': ['List_Kelas', 'List_Mapel'] 
+  };
+
+  // 2. LOOP MEMBUAT SHEET & HEADER
+  for (const [name, headers] of Object.entries(schema)) {
+    let sheet = SS.getSheetByName(name);
+    
+    // Jika sheet belum ada, buat baru
+    if (!sheet) {
+      sheet = SS.insertSheet(name);
+      sheet.appendRow(headers);
+      
+      // Styling Header (Bold & Background Abu-abu)
+      sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#e2e8f0');
+      sheet.setFrozenRows(1);
+
+      // --- KHUSUS KONFIGURASI: ISI DATA DEFAULT ---
+      if (name === 'Konfigurasi') {
+         const sampleConfig = [
+           ['app_name', 'Ujian Online V.3'],
+           ['app_subtitle', 'Sistem Ujian Terintegrasi'],
+           ['app_logo', 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Logo_of_Ministry_of_Education_and_Culture_of_Republic_of_Indonesia.svg/250px-Logo_of_Ministry_of_Education_and_Culture_of_Republic_of_Indonesia.svg.png'],
+           ['app_background', 'https://i.ibb.co.com/gMD4CdQ1/Foto-Sekolah.png'],
+           ['show_exam_result', 'true']
+         ];
+         sheet.getRange(2, 1, sampleConfig.length, 2).setValues(sampleConfig);
+      }
+
+      // --- KHUSUS MASTER DATA: ISI DATA DEFAULT KELAS & MAPEL ---
+      if (name === 'Master_Data') {
+         // Default Kelas (Kolom A)
+         const defaultClasses = [
+             ['X-IPA 1'], ['X-IPA 2'], ['X-IPS 1'], 
+             ['XI-IPA 1'], ['XI-IPA 2'], ['XI-IPS 1'], 
+             ['XII-RPL'], ['XII-TKJ'], ['XII-MM']
+         ];
+         sheet.getRange(2, 1, defaultClasses.length, 1).setValues(defaultClasses);
+
+         // Default Mapel (Kolom B)
+         const defaultSubjects = [
+             ['Matematika'], ['Bahasa Indonesia'], ['Bahasa Inggris'], 
+             ['Fisika'], ['Kimia'], ['Biologi'], 
+             ['Sejarah'], ['Geografi'], ['Ekonomi'], 
+             ['Pemrograman Dasar'], ['Basis Data']
+         ];
+         sheet.getRange(2, 2, defaultSubjects.length, 1).setValues(defaultSubjects);
+      }
+    }
+  }
+  
+  // 3. DATA USER DEFAULT
+  // Cek apakah sheet Users masih kosong (hanya header), jika ya, isi default
+  const userSheet = SS.getSheetByName('Users');
+  if (userSheet.getLastRow() === 1) {
+    userSheet.appendRow(['ADM-001', 'Admin Utama', 'admin123', 'Admin', '-', '', 'TRUE']);
+    userSheet.appendRow(['SIS-001', 'Siswa Contoh', 'siswa123456', 'Siswa', 'XII-RPL', '', 'TRUE']);
+    userSheet.appendRow(['GUR-001', 'Guru Contoh', 'guru123', 'Guru', '-', '', 'TRUE']);
+  }
+
+  // 4. DATA UJIAN DEMO
+  const examSheet = SS.getSheetByName('Exams');
+  const demoExamID = 'EXM-DEMO-001';
+  
+  if (examSheet.getLastRow() === 1) {
+    const now = new Date();
+    // Set waktu selesai 7 hari dari sekarang agar ujian aktif lama
+    const endTime = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); 
+
+    // Append Row: ID, Subject, Class, StartDate, Duration, PIN, Status, EndDate
+    examSheet.appendRow([
+        demoExamID, 
+        'Simulasi Ujian AKM & Standar', 
+        'XII-RPL', 
+        now, 
+        60, 
+        '12345', 
+        'Aktif', 
+        endTime
+    ]);
+  }
+
+  // 5. 10 SAMPEL SOAL (VARIASI PG, BS, JODOH, ESAI)
+  const qSheet = SS.getSheetByName('Questions');
+  
+  if (qSheet.getLastRow() === 1) {
+      // Q-001: Pilihan Ganda Biasa
+      qSheet.appendRow(['Q-001', demoExamID, 'PG', 'Berapakah hasil dari 5 x 5?', '', JSON.stringify(['10', '20', '25', '55', '50']), '25', 'TRUE']);
+      
+      // Q-002: Pilihan Ganda Biasa
+      qSheet.appendRow(['Q-002', demoExamID, 'PG', 'Ibu kota negara Indonesia saat ini adalah?', '', JSON.stringify(['Bandung', 'Surabaya', 'Jakarta', 'Medan', 'Makassar']), 'Jakarta', 'TRUE']);
+      
+      /* --- CONTOH SOAL BS AKM (TABEL) --- */
+      // Content: Cerita/Pengantar
+      // Options: Array berisi Daftar Pernyataan
+      // CorrectAnswer: JSON Object {"indeks": "Jawaban"}
+      const statements1 = [
+          "Global warming menyebabkan suhu bumi menurun.", // 0 (Salah)
+          "Es di kutub mencair akibat kenaikan suhu rata-rata.", // 1 (Benar)
+          "Perubahan iklim tidak berdampak pada cuaca." // 2 (Salah)
+      ];
+      const key1 = {"0": "Salah", "1": "Benar", "2": "Salah"};
+      
+      qSheet.appendRow([
+          'Q-003', demoExamID, 'BS', 
+          'Bacalah teks berikut:\n\nPemanasan global adalah peningkatan suhu rata-rata atmosfer, laut, dan daratan Bumi. Salah satu dampak utamanya adalah mencairnya es di kutub.', 
+          '', 
+          JSON.stringify(statements1), 
+          JSON.stringify(key1), 
+          'TRUE'
+      ]);
+      
+      // Q-004: Menjodohkan
+      const pairs1 = [{q: 'Jepang', a: 'Tokyo'}, {q: 'Inggris', a: 'London'}, {q: 'Prancis', a: 'Paris'}];
+      qSheet.appendRow(['Q-004', demoExamID, 'JODOH', 'Pasangkan Negara berikut dengan Ibu Kotanya:', '', JSON.stringify(pairs1), 'Auto-Check', 'TRUE']);
+      
+      // Q-005: PG Biasa
+      qSheet.appendRow(['Q-005', demoExamID, 'PG', 'Hewan yang memakan daging disebut?', '', JSON.stringify(['Herbivora', 'Karnivora', 'Omnivora', 'Insektivora', 'Frugivora']), 'Karnivora', 'TRUE']);
+      
+      /* --- CONTOH SOAL BS AKM KEDUA --- */
+      const statements2 = [
+          "Air mendidih pada suhu 100°C di tekanan standar.",
+          "Massa jenis minyak lebih besar daripada air."
+      ];
+      const key2 = {"0": "Benar", "1": "Salah"};
+
+      qSheet.appendRow([
+          'Q-006', demoExamID, 'BS', 
+          'Tentukan kebenaran dari pernyataan fisika berikut ini berdasarkan pengetahuan umum:', 
+          '', 
+          JSON.stringify(statements2), 
+          JSON.stringify(key2), 
+          'TRUE'
+      ]);
+
+      // Q-007: PG Biasa
+      qSheet.appendRow(['Q-007', demoExamID, 'PG', 'Komponen komputer yang berfungsi sebagai "otak" pemroses data adalah?', '', JSON.stringify(['Monitor', 'Mouse', 'CPU', 'Keyboard', 'Speaker']), 'CPU', 'TRUE']);
+      
+      // Q-008: Menjodohkan Matematika
+      const pairs2 = [{q: '10 + 10', a: '20'}, {q: '5 x 2', a: '10'}, {q: '100 / 2', a: '50'}];
+      qSheet.appendRow(['Q-008', demoExamID, 'JODOH', 'Cocokkan operasi matematika berikut dengan hasilnya:', '', JSON.stringify(pairs2), 'Auto-Check', 'TRUE']);
+      
+      // Q-009 & Q-010: Esai
+      qSheet.appendRow(['Q-009', demoExamID, 'Esai', 'Jelaskan pendapat Anda tentang perkembangan kecerdasan buatan (AI) saat ini.', '', '[]', '', 'FALSE']);
+      qSheet.appendRow(['Q-010', demoExamID, 'Esai', 'Tuliskan cita-cita Anda setelah lulus sekolah.', '', '[]', '', 'TRUE']);
+  }
+  
+  Logger.log('Database Initialized with Updated BS Samples.');
+}
+
+/* -----------------------------------------------------------
+   2. SERVING HTML
+   ----------------------------------------------------------- */
+
+    function doGet(e) {
+      const configResult = getAppConfig();
+      
+      // Data Default (Jika sheet kosong)
+      const defaultConfig = {
+        app_name: 'Ujian Online V.3',
+        app_subtitle: 'Sistem Ujian Online Terintegrasi',
+        app_logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Logo_of_Ministry_of_Education_and_Culture_of_Republic_of_Indonesia.svg/250px-Logo_of_Ministry_of_Education_and_Culture_of_Republic_of_Indonesia.svg.png',
+        // TAMBAHAN BARU: BACKGROUND DEFAULT
+        app_background: 'https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=1986&auto=format&fit=crop'
+      };
+
+      const appConfig = (configResult.success && configResult.data) ? configResult.data : defaultConfig;
+
+      const template = HtmlService.createTemplateFromFile('index');
+
+      // Tambahkan timezone dari setelan Apps Script otomatis
+      appConfig.timezone = Session.getScriptTimeZone();
+
+      template.cfg = appConfig;
+
+      return template.evaluate()
+          .setTitle(appConfig.app_name)
+          .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+          .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+    }
+
+function checkUserAccess(userID, token, targetSubject, targetClass) {
+  // 1. Cek Sesi Valid
+  const sheet = SS.getSheetByName('Users');
+  const data = sheet.getDataRange().getValues();
+  let userRow = null;
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === userID && String(data[i][5]) === token) {
+      userRow = data[i];
+      break;
+    }
+  }
+
+  if (!userRow) return { allowed: false, message: 'Sesi tidak valid.' };
+
+  const role = userRow[3]; // Kolom Role
+  
+  // 2. Admin Boleh Segalanya
+  if (role === 'Admin') return { allowed: true };
+
+  // 3. Cek Izin Guru
+  if (role === 'Guru') {
+    const assignments = String(userRow[4]).split(','); // Kolom Class berisi tugas (Mapel:Kelas)
+    
+    // Normalisasi input (kecilkan huruf & hapus spasi)
+    const tSub = String(targetSubject).toLowerCase().trim();
+    const tCls = String(targetClass).toLowerCase().trim();
+
+    // Cek apakah Mapel & Kelas cocok dengan salah satu tugas guru
+    const isMatch = assignments.some(rule => {
+      const parts = rule.split(':');
+      if (parts.length < 2) return false;
+      const rSub = parts[0].toLowerCase().trim();
+      const rCls = parts[1].toLowerCase().trim();
+      return (tSub.includes(rSub) && tCls.includes(rCls));
+    });
+
+    if (isMatch) return { allowed: true };
+    return { allowed: false, message: 'Anda tidak memiliki akses ke Mata Pelajaran/Kelas ini.' };
+  }
+
+  return { allowed: false, message: 'Role tidak dikenali.' };
+}
+/* -----------------------------------------------------------
+   3. AUTHENTICATION & SESSION
+   ----------------------------------------------------------- */
+
+function verifyAdminAccess(requestorID, requestorToken) {
+  if (!requestorID || !requestorToken) {
+    throw new Error("Akses Ditolak: Identitas tidak valid.");
+  }
+
+  const sheet = SS.getSheetByName('Users');
+  const data = sheet.getDataRange().getValues();
+  
+  // Mencari user berdasarkan ID
+  // Asumsi: Kolom A=UserID, D=Role, F=Token, G=IsActive
+  // (Sesuaikan index array jika struktur kolom Anda berbeda. Ingat: Index dimulai dari 0)
+  
+  let userFound = false;
+  let isAdmin = false;
+  let tokenMatch = false;
+  let isActive = false;
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(requestorID)) {
+      userFound = true;
+      // Cek Role (Kolom D -> index 3)
+      if (String(data[i][3]).toLowerCase() === 'admin') isAdmin = true;
+      // Cek Token (Kolom F -> index 5)
+      if (String(data[i][5]) === String(requestorToken)) tokenMatch = true;
+      // Cek Status Aktif (Kolom G -> index 6)
+      if (data[i][6] === true || String(data[i][6]) === 'true') isActive = true;
+      break; 
+    }
+  }
+
+  if (!userFound) throw new Error("Akses Ditolak: User tidak ditemukan.");
+  if (!isAdmin) throw new Error("Akses Ditolak: Anda bukan Admin.");
+  if (!tokenMatch) throw new Error("Akses Ditolak: Sesi kadaluarsa/invalid.");
+  if (!isActive) throw new Error("Akses Ditolak: Akun dinonaktifkan.");
+  
+  return true; // Lolos verifikasi
+}
+
+function loginUser(userIdInput, password, pinSesi, isAdminLogin) {
+  const sheet = SS.getSheetByName('Users');
+  const data = sheet.getDataRange().getValues();
+  
+  const inputID = String(userIdInput).toLowerCase().trim();
+  const inputPass = String(password).trim();
+
+  for (let i = 1; i < data.length; i++) {
+    const dbID    = String(data[i][0]).toLowerCase().trim();
+    const dbPass  = String(data[i][2]).trim();
+    const isActive = String(data[i][6]).toUpperCase() === 'TRUE';
+
+    if (dbID === inputID && dbPass === inputPass) {
+
+      if (!isActive) {
+        return { success: false, message: 'Akun Anda dinonaktifkan. Hubungi Admin.' };
+      }
+
+      const role       = data[i][3];
+      const userClass  = data[i][4];
+      const realUserID = data[i][0];
+      const realName   = data[i][1];
+
+      if ((role === 'Admin' || role === 'Guru') && !isAdminLogin) {
+        return { success: false, message: 'Akses ditolak. Harap centang "Login sebagai Admin / Guru".' };
+      }
+      if (role === 'Siswa' && isAdminLogin) {
+        return { success: false, message: 'Siswa tidak boleh login lewat akses Admin.' };
+      }
+
+      let examData = null;
+
+      if (role === 'Siswa') {
+        if (!pinSesi) {
+          return { success: false, message: 'Siswa wajib mengisi PIN Sesi Ujian.' };
+        }
+
+        // 1. Validasi PIN ke sheet Exams
+        const check = validateExamPIN(pinSesi, userClass);
+        if (!check.valid) {
+          return { success: false, message: check.message };
+        }
+        examData = check.data;
+
+        // ✅ FIX: Cek sheet Responses — apakah siswa sudah Completed?
+        const rSheet = SS.getSheetByName('Responses');
+        const rData  = rSheet.getDataRange().getValues();
+        let responseId   = null;
+        let isDoneAlready = false;
+
+        for (let j = 1; j < rData.length; j++) {
+          const respUserID = String(rData[j][1]);
+          const respExamID = String(rData[j][2]);
+          const respStatus = String(rData[j][7]).toLowerCase(); // Kolom H = Status
+
+          if (respUserID === String(realUserID) && respExamID === String(examData.id)) {
+            responseId = String(rData[j][0]);
+            if (respStatus === 'completed' || respStatus === 'selesai') {
+              isDoneAlready = true;
+            }
+            break;
+          }
+        }
+
+        // Jika sudah Completed → kembalikan flag viewResultsOnly (BUKAN error)
+      if (isDoneAlready) {
+        const token = Utilities.getUuid();
+        sheet.getRange(i + 1, 6).setValue(token);
+
+        // Ambil setting show_exam_result dari Konfigurasi
+        const cfgSheet = SS.getSheetByName('Konfigurasi');
+        let showExamResult = true; // default: tampilkan
+        if (cfgSheet) {
+          const cfgData = cfgSheet.getDataRange().getValues();
+          for (let c = 1; c < cfgData.length; c++) {
+            if (String(cfgData[c][0]) === 'show_exam_result') {
+              showExamResult = String(cfgData[c][1]).toLowerCase() !== 'false';
+              break;
+            }
+          }
+        }
+
+        return {
+          success: true,
+          token: token,
+          role: role,
+          userID: realUserID,
+          username: realName,
+          examData: examData,
+          viewResultsOnly: true,
+          responseId: responseId,
+          showExamResult: showExamResult  // ← tambahan baru
+        };
+      }
+      }
+
+      // Login normal (Admin, Guru, atau Siswa yang belum Completed)
+      const token = Utilities.getUuid();
+      sheet.getRange(i + 1, 6).setValue(token);
+
+      return {
+        success: true,
+        token: token,
+        role: role,
+        userID: realUserID,
+        username: realName,
+        examData: examData
+      };
+    }
+  }
+
+  return { success: false, message: 'User ID atau Password salah.' };
+}
+
+
+/* -----------------------------------------------------------
+   TAMBAHAN: CHECK SESSION (UNTUK AUTO LOGIN)
+   ----------------------------------------------------------- */
+function checkSession(userID, token) {
+  const sheet = SS.getSheetByName('Users');
+  const data = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    const dbUserID = String(data[i][0]);
+    // Token ada di kolom index 5 (Kolom F)
+    const dbToken = String(data[i][5]); 
+    const role = data[i][3];
+    const isActive = String(data[i][6]).toUpperCase() === 'TRUE';
+
+    // 1. Cek User ID dan Token match
+    if (dbUserID === userID && dbToken === token) {
+       
+       if (!isActive) return { success: false, message: 'Akun dinonaktifkan.' };
+
+       // 2. Siapkan data user untuk dikembalikan ke Client
+       // (Strukturnya disamakan dengan return loginUser)
+       let examData = null;
+       const userClass = data[i][4];
+
+       // Jika Siswa, kita perlu cek apakah dia sedang mengerjakan ujian (Opsional, tapi bagus untuk UX)
+       if (role === 'Siswa') {
+          // Logic tambahan jika ingin auto-resume ujian bisa ditaruh sini
+          // Untuk saat ini kita kembalikan data dasar saja
+       }
+
+       return { 
+          success: true, 
+          token: token, 
+          role: role, 
+          userID: userID, 
+          username: data[i][1],
+          examData: null // Siswa nanti akan diminta masuk PIN lagi atau dilanjut logic frontend
+       };
+    }
+  }
+  return { success: false, message: 'Sesi kadaluarsa atau token tidak valid.' };
+}
+/* --- GANTI FUNGSI validateExamPIN DI CODE.GS DENGAN INI --- */
+
+function validateExamPIN(pin, userClass) {
+  const sheet = SS.getSheetByName('Exams');
+  const data = sheet.getDataRange().getValues();
+  const now = new Date(); 
+
+  for (let i = 1; i < data.length; i++) {
+    const [id, subject, cls, startDate, rawDuration, examPin, status, endDate] = data[i];
+    
+    const startObj = new Date(startDate);
+    const endObj = endDate ? new Date(endDate) : null;
+    const duration = parseInt(rawDuration);
+    const allowedClasses = String(cls).split(',').map(c => c.trim());
+
+    if (String(examPin).trim() === String(pin).trim() && allowedClasses.includes(userClass)) {
+       
+       const examStatus = String(status).toLowerCase();
+
+       // ✅ BARU: Ujian sudah selesai/completed → siswa bisa lihat hasil
+       if (examStatus === 'completed' || examStatus === 'selesai') {
+           return { valid: true, data: { id, subject, duration: isNaN(duration) ? 60 : duration }, viewResultsOnly: true };
+       }
+
+       // Tolak jika status bukan aktif
+       if (examStatus !== 'aktif') {
+           continue; 
+       }
+
+       if (now < startObj) {
+           return { valid: false, message: 'Ujian belum dimulai. Harap tunggu.' };
+       }
+
+       if (endObj && now > endObj) {
+           sheet.getRange(i + 1, 7).setValue('Non-Aktif');
+           return { valid: false, message: 'Waktu ujian telah berakhir.' };
+       }
+
+       if (isNaN(duration) || duration <= 0) {
+         return { valid: false, message: 'Konfigurasi durasi ujian salah.' };
+       }
+
+       return { valid: true, data: { id, subject, duration: duration } };
+    }
+  }
+  
+  return { valid: false, message: 'PIN salah, Kelas tidak sesuai, atau Ujian tidak aktif.' };
+}
+
+function logoutUser(userID) {
+  const sheet = SS.getSheetByName('Users');
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] == userID) {
+      sheet.getRange(i + 1, 6).setValue(''); // Hapus token
+      break;
+    }
+  }
+}
+
+function isValidSession(userID, token) {
+  const sheet = SS.getSheetByName('Users');
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] == userID) return data[i][5] === token;
+  }
+  return false;
+}
+
+/* -----------------------------------------------------------
+   4. EXAM ENGINE & SCORING (STUDENT)
+   ----------------------------------------------------------- */
+
+function getExamQuestions(examID, userID, token) {
+  
+  // ==========================================================
+  // 1. VALIDASI SESI & SECURITY CHECK
+  // ==========================================================
+  // Cek apakah user login dengan token yang sah
+  if (!isValidSession(userID, token)) {
+      return { error: 'Sesi habis. Login di perangkat lain terdeteksi.' };
+  }
+
+  const respSheet = SS.getSheetByName('Responses');
+  const respData = respSheet.getDataRange().getValues();
+  let savedAnswers = {};
+
+  // ==========================================================
+  // 2. CEK STATUS SISWA (RESUME / SELESAI / CURANG)
+  // ==========================================================
+  for(let i=1; i<respData.length; i++) {
+    // Cek UserID (Kolom B/Index 1) dan ExamID (Kolom C/Index 2)
+    if(String(respData[i][1]) === String(userID) && String(respData[i][2]) === String(examID)) {
+        
+        const currentStatus = respData[i][7]; // Kolom H (Status)
+
+        // A. Blokir jika sudah Selesai
+        if(currentStatus === 'Completed' || currentStatus === 'Selesai') {
+            return { error: 'Anda sudah menyelesaikan ujian ini.' };
+        }
+
+        // B. Blokir jika Didiskualifikasi (Curang)
+        if(currentStatus === 'Curang') {
+             return { error: 'AKSES DITOLAK: Anda telah didiskualifikasi dari ujian ini karena terdeteksi melakukan kecurangan.' };
+        }
+
+        // C. Jika status aman (In Progress), muat jawaban yang tersimpan (Resume)
+        savedAnswers = JSON.parse(respData[i][3] || '{}');
+        break;
+    }
+  }
+
+  // ==========================================================
+  // 3. AMBIL DATA SOAL (DENGAN PENGELOMPOKAN TIPE)
+  // ==========================================================
+  const qSheet = SS.getSheetByName('Questions');
+  const qData = qSheet.getDataRange().getValues();
+  
+  // Siapkan "Keranjang" untuk setiap jenis soal
+  let listPG = [];
+  let listPG_Kompleks = [];
+  let listBS = [];
+  let listJodoh = [];
+  let listEsai = [];
+
+  // Loop data soal (mulai index 1 untuk lewati header)
+  for (let index = 1; index < qData.length; index++) {
+    const row = qData[index];
+
+    // Filter hanya soal untuk ExamID yang sedang diminta
+    if (String(row[1]) === String(examID)) {
+      
+      // Susun objek soal (Sanitized: Tanpa Kunci Jawaban)
+      const qObj = {
+        id: row[0],
+        type: row[2],
+        content: row[3],
+        image: row[4],
+        options: row[5] ? JSON.parse(row[5]) : [],
+        // PENTING: Row[6] (CorrectAnswer) TIDAK dikirim ke client
+        isRequired: row[7] 
+      };
+
+      // Masukkan ke keranjang berdasarkan Tipe Soal
+      const type = String(row[2]).trim();
+
+      if (type === 'PG') {
+        listPG.push(qObj);
+      } else if (type === 'PG_KOMPLEKS') {
+        listPG_Kompleks.push(qObj);
+      } else if (type === 'BS') {
+        listBS.push(qObj);
+      } else if (type === 'JODOH') {
+        listJodoh.push(qObj);
+      } else if (type === 'Esai') {
+        listEsai.push(qObj);
+      }
+    }
+  }
+
+  // ==========================================================
+  // 4. LOGIKA PENGACAKAN (SHUFFLE) PER KELOMPOK
+  // ==========================================================
+  
+  // Fungsi Helper Fisher-Yates Shuffle
+  const shuffleArray = (array) => {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  };
+
+// Baca ShuffleConfig dari sheet Exams
+  const examSheet = SS.getSheetByName('Exams');
+  const examRows  = examSheet.getDataRange().getValues();
+  let shuffleCfg  = { PG: false, PG_KOMPLEKS: false, BS: false, JODOH: false, Esai: false };
+  for (let ei = 1; ei < examRows.length; ei++) {
+    if (String(examRows[ei][0]) === String(examID)) {
+      const raw = examRows[ei][8]; // Kolom I (index 8) = ShuffleConfig
+      if (raw) { try { shuffleCfg = JSON.parse(raw); } catch(e) {} }
+      break;
+    }
+  }
+  if (shuffleCfg.PG)          shuffleArray(listPG);
+    if (shuffleCfg.PG_KOMPLEKS) shuffleArray(listPG_Kompleks);
+    if (shuffleCfg.BS)          shuffleArray(listBS);
+    if (shuffleCfg.JODOH)       shuffleArray(listJodoh);
+    if (shuffleCfg.Esai)        shuffleArray(listEsai);
+
+  // ==========================================================
+  // 5. GABUNGKAN KEMBALI (SESUAI URUTAN YANG DIMINTA)
+  // ==========================================================
+  // Urutan: PG -> PG Kompleks -> BS -> Jodoh -> Esai
+  const finalQuestions = [
+    ...listPG, 
+    ...listPG_Kompleks, 
+    ...listBS, 
+    ...listJodoh, 
+    ...listEsai
+  ];
+
+  // ==========================================================
+  // 6. KEMBALIKAN HASIL KE FRONTEND
+  // ==========================================================
+  return { questions: finalQuestions, savedAnswers: savedAnswers };
+}
+
+/**
+ * Fungsi untuk menyimpan jawaban siswa ke Database (Sheet Responses).
+ * PERBAIKAN: Menggunakan LockService untuk menangani 100+ siswa bersamaan.
+ */
+function syncAnswers(userID, examID, answers, violationCount) {
+  // 1. Dapatkan Lock (Kunci) agar tidak ada dua siswa menulis di detik yang sama
+  const lock = LockService.getScriptLock();
+  
+  try {
+    // Tunggu antrean maksimal 10 detik. Jika server sibuk, lempar error.
+    lock.waitLock(10000); 
+  } catch (e) {
+    return { 
+      status: 'error', 
+      message: 'Server sedang sibuk, jawaban akan dikirim ulang otomatis sebentar lagi.' 
+    };
+  }
+
+  try {
+    const sheet = SS.getSheetByName('Responses');
+    
+    // Optimasi: Membaca seluruh data memakan waktu lama. 
+    // Kita baca kolom UserID (B) dan ExamID (C) saja untuk pencarian cepat.
+    const lastRow = sheet.getLastRow();
+    let rowIdx = -1;
+
+    // Jika ada data (baris > 1), lakukan pencarian
+    if (lastRow > 1) {
+      // Ambil data dari baris 2 sampai baris terakhir, kolom 2 (UserID) dan 3 (ExamID)
+      // getValues() mengembalikan array 2D: [[UserID, ExamID], [UserID, ExamID], ...]
+      const dataIds = sheet.getRange(2, 2, lastRow - 1, 2).getValues();
+
+      // Loop mencari posisi baris siswa
+      for (let i = 0; i < dataIds.length; i++) {
+        // dataIds[i][0] adalah UserID, dataIds[i][1] adalah ExamID
+        if (dataIds[i][0] == userID && dataIds[i][1] == examID) {
+          rowIdx = i + 2; // +2 karena array mulai dari 0 tapi baris sheet mulai dari 2 (setelah header)
+          break;
+        }
+      }
+    }
+
+    // Konversi jawaban ke String JSON
+    // Opsional: Anda bisa memasukkan violationCount ke dalam JSON jika ingin menyimpannya
+    const ansJSON = JSON.stringify(answers);
+
+    if (rowIdx === -1) { 
+      // --- KASUS: DATA BARU (APPEND) ---
+      const newID = 'RSP-' + Date.now();
+      
+      // Struktur kolom: 
+      // [ResponseID, UserID, ExamID, AnswersJSON, Score, StartTime, SubmitTime, Status]
+      sheet.appendRow([
+        newID, 
+        userID, 
+        examID, 
+        ansJSON, 
+        0,          // Score awal 0
+        new Date(), // StartTime
+        '',         // SubmitTime kosong
+        'In Progress'
+      ]);
+
+    } else { 
+      // --- KASUS: UPDATE DATA LAMA (SET VALUE) ---
+      // Update Kolom 4 (AnswersJSON)
+      sheet.getRange(rowIdx, 4).setValue(ansJSON);
+      
+      // Update Timestamp terakhir update (Opsional, agar tahu kapan terakhir sync)
+      // sheet.getRange(rowIdx, 7).setValue(new Date()); 
+    }
+
+    // Paksa Spreadsheet untuk menyimpan perubahan SEKARANG sebelum melepas lock
+    SpreadsheetApp.flush();
+    
+    return { status: 'success', message: 'Jawaban tersimpan.' };
+
+  } catch (err) {
+    // Tangkap error jika ada masalah logika
+    return { status: 'error', message: err.toString() };
+
+  } finally {
+    // 3. Pastikan Lock SELALU dilepas, baik sukses maupun error
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Fungsi Submit Ujian (Lengkap dengan Perbaikan PG Kompleks & Nilai Parsial)
+ */
+function submitExam(userID, examID, answers, customStatus) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+  } catch(e) {
+    return { success: false, message: 'Server sedang sibuk, coba lagi.' };
+  }
+  try {
+  const qSheet = SS.getSheetByName('Questions');
+  const qData = qSheet.getDataRange().getValues();
+  
+  let totalPoints = 0;
+  let maxPoints   = 0;
+
+  // ============================================================
+  // HELPER: Strip HTML + trim + lowercase
+  // Diperlukan karena TinyMCE menyimpan teks opsi sebagai HTML
+  // Contoh: "<p>Karnivora</p>" → "karnivora"
+  // ============================================================
+  function stripHtml(str) {
+    return String(str || '')
+      .replace(/<[^>]*>/g, ' ')   // hapus semua tag HTML
+      .replace(/&nbsp;/gi, ' ')   // ganti entity spasi
+      .replace(/\s+/g, ' ')       // rapikan spasi ganda
+      .trim()
+      .toLowerCase();
+  }
+
+  // ============================================================
+  // LOGIKA SCORING — LOOP SETIAP SOAL
+  // ============================================================
+  qData.forEach((row, i) => {
+    if (i === 0 || String(row[1]) !== String(examID)) return;
+
+    const qid     = row[0];           // Question ID   (Col A)
+    const type    = String(row[2]).trim(); // Tipe Soal (Col C)
+    const keyRaw  = row[6];           // Kunci Jawaban (Col G)
+    const userAns = answers[qid];     // Jawaban Siswa
+    const weight  = row[8] ? parseFloat(row[8]) : 10; // Bobot (Col I)
+
+    maxPoints += weight;
+
+    // ==========================================================
+    // A. PILIHAN GANDA BIASA (PG)
+    // ==========================================================
+    // Frontend menyimpan TEKS opsi (bukan huruf), contoh: "Karnivora"
+    // Kunci guru bisa berupa huruf ("B") ATAU teks langsung ("Karnivora")
+    // ==========================================================
+    if (type === 'PG') {
+
+      const cleanUser = stripHtml(userAns);
+      const cleanKey  = String(keyRaw || '').trim();
+
+      let isCorrect = false;
+      const mapHuruf = ['A', 'B', 'C', 'D', 'E'];
+      const keyIndex = mapHuruf.indexOf(cleanKey.trim().toUpperCase());
+
+      if (keyIndex !== -1) {
+        // Kunci adalah HURUF → ambil teks opsi yang sesuai, lalu bandingkan
+        let optionsArr = [];
+        try { optionsArr = JSON.parse(row[5]); } catch (e) { optionsArr = []; }
+
+        if (optionsArr[keyIndex]) {
+          const correctText = stripHtml(optionsArr[keyIndex]);
+          if (cleanUser === correctText && correctText !== '') isCorrect = true;
+        }
+      } else {
+        // Kunci adalah TEKS LANGSUNG → bandingkan langsung
+        if (cleanUser === stripHtml(cleanKey)) isCorrect = true;
+      }
+
+      if (isCorrect) totalPoints += weight;
+    }
+
+    // ==========================================================
+    // B. PILIHAN GANDA KOMPLEKS (PG_KOMPLEKS)
+    // ==========================================================
+    // Frontend menyimpan array TEKS opsi: ["Karnivora", "Omnivora"]
+    // Kunci guru SELALU array HURUF: ["A", "C"]
+    // Fix: konversi huruf kunci → teks opsi → bandingkan
+    // ==========================================================
+    else if (type === 'PG_KOMPLEKS') {
+
+      // --- 1. Parse kunci jawaban (array huruf) ---
+      let keyArr = [];
+      try {
+        const parsed = JSON.parse(keyRaw);
+        keyArr = Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        keyArr = String(keyRaw || '').split(',').map(s => s.trim()).filter(s => s);
+      }
+
+      // --- 2. Parse jawaban siswa (array teks) ---
+      let userArr = [];
+      if (Array.isArray(userAns)) {
+        userArr = userAns;
+      } else {
+        try {
+          const parsed = JSON.parse(userAns);
+          userArr = Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          userArr = String(userAns || '').split(',').map(s => s.trim()).filter(s => s);
+        }
+      }
+
+      // --- 3. Parse opsi untuk konversi huruf → teks ---
+      let optionsArr = [];
+      try {
+        const parsed = JSON.parse(row[5]);
+        optionsArr = Array.isArray(parsed) ? parsed : [];
+      } catch (e) { optionsArr = []; }
+
+      const mapHuruf = ['A', 'B', 'C', 'D', 'E'];
+
+      // --- 4. Konversi kunci huruf → teks opsi (strip HTML) ---
+      // ["A","C"] + options["Karnivora","Omnivora",...] → ["karnivora","omnivora"]
+      const realKeyValues = keyArr
+        .map(k => {
+          const cleanK = String(k).trim().toUpperCase();
+          const idx    = mapHuruf.indexOf(cleanK);
+          if (idx !== -1 && optionsArr[idx]) {
+            return stripHtml(optionsArr[idx]);  // huruf → teks bersih
+          }
+          return stripHtml(k);                 // sudah teks → bersihkan saja
+        })
+        .filter(v => v !== '');
+
+      // --- 5. Normalisasi jawaban siswa ---
+      const realUserValues = userArr
+        .map(u => stripHtml(u))
+        .filter(v => v !== '');
+
+      // --- 6. Hitung benar/salah ---
+      let matchCount = 0;
+      let wrongCount = 0;
+
+      realUserValues.forEach(val => {
+        if (realKeyValues.includes(val)) matchCount++;
+        else                             wrongCount++;
+      });
+
+      // --- 7. Beri poin hanya jika nol jawaban salah ---
+      // Partial score: (benar / total kunci) × bobot
+      if (wrongCount === 0 && matchCount > 0 && realKeyValues.length > 0) {
+        totalPoints += (matchCount / realKeyValues.length) * weight;
+      }
+    }
+
+    // ==========================================================
+    // C. BENAR / SALAH (BS)
+    // ==========================================================
+    else if (type === 'BS') {
+      let keyObj = {};
+      try { keyObj = JSON.parse(keyRaw); } catch (e) {
+        // Fallback format lama (single value)
+        if (String(userAns || '').toLowerCase() === String(keyRaw || '').toLowerCase()) {
+          totalPoints += weight;
+        }
+        return;
+      }
+
+      const ansObj    = (typeof userAns === 'object' && userAns !== null) ? userAns : {};
+      const totalRows = Object.keys(keyObj).length;
+
+      if (totalRows > 0) {
+        let matches = 0;
+        for (const idx in keyObj) {
+          const kVal = String(keyObj[idx]).trim().toLowerCase();
+          const uVal = String(ansObj[idx] || '').trim().toLowerCase();
+
+          const isMatch = (kVal === uVal)
+            || (kVal === 'benar'  && uVal === 'sesuai')
+            || (kVal === 'salah'  && uVal === 'tidak sesuai');
+
+          if (isMatch) matches++;
+        }
+        totalPoints += (matches / totalRows) * weight;
+      }
+    }
+
+    // ==========================================================
+    // D. MENJODOHKAN (JODOH)
+    // ==========================================================
+    else if (type === 'JODOH') {
+      let correctPairs = [];
+      try { correctPairs = JSON.parse(row[5]); } catch (e) { correctPairs = []; }
+
+      if (correctPairs.length > 0 && userAns && typeof userAns === 'object') {
+        let matches = 0;
+        correctPairs.forEach(pair => {
+          if (userAns[pair.q] === pair.a) matches++;
+        });
+        totalPoints += (matches / correctPairs.length) * weight;
+      }
+    }
+
+    // ==========================================================
+    // E. ESAI → dinilai manual, poin otomatis 0
+    // ==========================================================
+    // (tidak ada kode, maxPoints sudah bertambah di atas)
+
+  }); // end forEach
+
+  // ============================================================
+  // HITUNG SKOR AKHIR (SKALA 0–100)
+  // ============================================================
+  const finalScore  = maxPoints > 0 ? Math.round((totalPoints / maxPoints) * 100) : 0;
+  const finalStatus = customStatus || 'Completed';
+
+  // ============================================================
+  // SIMPAN KE SHEET RESPONSES
+  // ============================================================
+  const rSheet = SS.getSheetByName('Responses');
+  const rData  = rSheet.getDataRange().getValues();
+  let saved    = false;
+
+  for (let i = 1; i < rData.length; i++) {
+    if (String(rData[i][1]) === String(userID) && String(rData[i][2]) === String(examID)) {
+      const rowIdx = i + 1;
+      rSheet.getRange(rowIdx, 4).setValue(JSON.stringify(answers)); // Col D: AnswersJSON
+      rSheet.getRange(rowIdx, 5).setValue(finalScore);              // Col E: Score
+      rSheet.getRange(rowIdx, 7).setValue(new Date());              // Col G: SubmitTime
+      rSheet.getRange(rowIdx, 8).setValue(finalStatus);             // Col H: Status
+      saved = true;
+      break;
+    }
+  }
+
+  if (!saved) {
+    rSheet.appendRow([
+      'RSP-' + Date.now(),
+      userID,
+      examID,
+      JSON.stringify(answers),
+      finalScore,
+      new Date(), // StartTime
+      new Date(), // SubmitTime
+      finalStatus
+    ]);
+  }
+
+  return { success: true, score: finalScore };
+
+    } catch(err) {
+      return { success: false, message: 'Gagal menyimpan: ' + err.toString() };
+    } finally {
+      lock.releaseLock();
+    }
+  }
+
+function logViolation(userID, examID, count, details) {
+  const lock = LockService.getScriptLock();
+  try { lock.waitLock(5000); } catch(e) { return { forceSubmit: true }; }
+  try {
+    SS.getSheetByName('Logs').appendRow(['LOG-'+Date.now(), userID, examID, 1, details, new Date()]);
+  } finally {
+    lock.releaseLock();
+  }
+  return { forceSubmit: true };
+}
+
+/* -----------------------------------------------------------
+   5. ADMIN FEATURES (CRUD & TANGGAL FIX)
+   ----------------------------------------------------------- */
+
+// Create Exam dengan Konversi Tanggal yang Benar
+function createExam(form, userID, token) {
+  // 1. Cek Hak Akses User
+  const access = checkUserAccess(userID, token, form.subject, form.class);
+  if (!access.allowed) {
+    return { success: false, message: access.message };
+  }
+
+  const sheet = SS.getSheetByName('Exams');
+  
+  // 2. Generate Exam ID Unik
+  // Contoh: EXM-MATEMATIKA_8821
+  let rawSubject = form.subject.toString().toUpperCase();
+  let cleanSubject = rawSubject.replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  const randomNum = Math.floor(1000 + Math.random() * 9000);
+  const id = `EXM-${cleanSubject}_${randomNum}`;
+
+  // 3. Validasi Tanggal
+  const startDate = new Date(form.date);
+  const endDate = new Date(form.endDate);
+
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    return { success: false, message: 'Format tanggal tidak valid.' };
+  }
+
+  if (endDate <= startDate) {
+    return { success: false, message: 'Waktu Selesai harus lebih akhir dari Waktu Mulai.' };
+  }
+
+  // 4. Simpan ke Database
+  // Urutan Kolom: [ID, Mapel, Kelas, Waktu Mulai, Durasi, PIN, Status, Waktu Selesai]
+  const now = new Date();
+  const initialStatus = now >= startDate ? 'Aktif' : 'Non-Aktif';
+
+  const defaultShuffle = { PG: false, PG_KOMPLEKS: false, BS: false, JODOH: false, Esai: false };
+  const shuffleConfig = form.shuffleConfig || defaultShuffle;
+
+  sheet.appendRow([
+    id, 
+    form.subject, 
+    form.class, 
+    startDate, 
+    form.duration, 
+    form.pin, 
+    initialStatus, 
+    endDate,
+    JSON.stringify(shuffleConfig)
+  ]);
+  
+  return { success: true };
+}
+
+// Get Exam List dengan Format Tanggal yang Bisa Dibaca
+/* -----------------------------------------------------------
+   FUNGSI: MENGAMBIL DAFTAR UJIAN (READ & FILTER)
+   ----------------------------------------------------------- */
+function getExamList(userID, token) {
+  const sheet = SS.getSheetByName('Exams');
+  if (sheet.getLastRow() <= 1) return [];
+
+  // 1. AMBIL DATA USER DULU (Untuk Cek Role & Tugas Mengajar)
+  const userSheet = SS.getSheetByName('Users');
+  const userRows = userSheet.getDataRange().getValues();
+  
+  let role = '';
+  let teacherSubjects = [];
+
+  // Loop cari user yang sedang login
+  for (let u = 1; u < userRows.length; u++) {
+    if (String(userRows[u][0]).toLowerCase() === String(userID).toLowerCase()) {
+       role = userRows[u][3]; // Kolom Role
+       
+    if (role === 'Guru') {
+         const rawData = String(userRows[u][4] || '');
+         const assignments = rawData.split(',');
+         assignments.forEach(item => {
+           const parts = item.split(':');
+           if (parts.length >= 2) {
+             teacherSubjects.push({
+               subject: parts[0].trim().toLowerCase(),
+               kelas: parts[1].trim().toLowerCase()
+             });
+           }
+         });
+       }
+       break;
+    }
+  }
+
+  // 2. AMBIL DATA UJIAN
+  const data = sheet.getDataRange().getValues();
+  const timezone = Session.getScriptTimeZone();
+  const now = new Date(); // [BARU] Ambil waktu sekarang
+  const result = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const r = data[i];
+    const examSubject = String(r[1]).toLowerCase(); 
+    
+    // --- LOGIKA FILTER (Admin lihat semua, Guru lihat mapelnya) ---
+    let include = false;
+    if (role === 'Admin') {
+      include = true;
+    } else if (role === 'Guru') {
+      const examClass = String(r[2]).toLowerCase();
+      const match = teacherSubjects.some(tugas => {
+        // Cek apakah mapel cocok DAN salah satu kelas di ujian cocok dengan kelas guru
+        const kelasUjian = examClass.split(',').map(k => k.trim());
+        return examSubject.includes(tugas.subject) && kelasUjian.some(k => k.includes(tugas.kelas) || tugas.kelas.includes(k));
+      });
+      if (match) {
+        include = true;
+      }
+    }
+
+    // Jika lolos filter akses, proses datanya
+    if (include) {
+        let dateStartRaw = r[3];
+        let dateEndRaw = r[7]; // Kolom H (Index 7) = Waktu Selesai
+        let status = r[6];     // Kolom G (Index 6) = Status
+
+        // === [LOGIKA BARU] AUTO UPDATE STATUS JIKA WAKTU HABIS ===
+        // === AUTO UPDATE STATUS BERDASARKAN WAKTU ===
+// === AUTO UPDATE STATUS BERDASARKAN WAKTU ===
+        const startObj = dateStartRaw instanceof Date ? dateStartRaw : null;
+        const endObj   = dateEndRaw instanceof Date   ? dateEndRaw   : null;
+
+        // 1. Waktu selesai sudah lewat → Non-Aktif
+        if (endObj && now > endObj) {
+            sheet.getRange(i + 1, 7).setValue('Non-Aktif');
+            r[6] = 'Non-Aktif';
+        }
+        // 2. Sudah masuk waktu mulai & belum selesai → Aktif
+        else if (startObj && endObj && now >= startObj && now <= endObj) {
+            sheet.getRange(i + 1, 7).setValue('Aktif');
+            r[6] = 'Aktif';
+        }
+        // 3. Belum masuk waktu mulai → Non-Aktif
+        else if (startObj && now < startObj) {
+            sheet.getRange(i + 1, 7).setValue('Non-Aktif');
+            r[6] = 'Non-Aktif';
+        }
+        // =============================================
+        // =============================================
+        // =========================================================
+
+        let isoStartDate = '', strStartDate = '-';
+        let isoEndDate = '', strEndDate = '-';
+
+        // Format Tampilan Tanggal
+        if (dateStartRaw instanceof Date) {
+            strStartDate = Utilities.formatDate(dateStartRaw, timezone, "dd/MM/yyyy HH:mm");
+            isoStartDate = Utilities.formatDate(dateStartRaw, timezone, "yyyy-MM-dd'T'HH:mm");
+        }
+        
+        if (dateEndRaw instanceof Date) {
+            strEndDate = Utilities.formatDate(dateEndRaw, timezone, "HH:mm");
+            isoEndDate = Utilities.formatDate(dateEndRaw, timezone, "yyyy-MM-dd'T'HH:mm");
+        }
+
+        result.push({ 
+          id: r[0], 
+          subject: r[1], 
+          class: r[2], 
+          date: isoStartDate,       
+          dateStr: strStartDate,    
+          endDate: isoEndDate,      
+          endDateStr: strEndDate,   
+          duration: r[4], 
+          pin: r[5], 
+          status: r[6],
+          shuffleConfig: r[8] ? JSON.parse(r[8]) : { PG: false, PG_KOMPLEKS: false, BS: false, JODOH: false, Esai: false }
+        });
+    }
+  }
+  return result;
+}
+
+function addQuestion(data) {
+  const sheet = SS.getSheetByName('Questions');
+  
+  // Generate ID Soal Unik
+  const id = 'Q-' + Date.now();
+  
+  // Konversi opsi jawaban ke string JSON (untuk PG/Complex)
+  const opts = JSON.stringify(data.options || []);
+  
+  // Ambil status wajib jawab, default ke 'FALSE' jika tidak ada
+  const isRequired = data.isRequired || 'FALSE';
+  
+  // AMBIL NILAI BOBOT (POINT)
+  // Mengambil data.point, jika kosong/tidak valid set default ke 10
+  const point = data.point ? parseFloat(String(data.point).replace(',', '.')) : 10;
+
+  // Append row sesuai urutan Schema TERBARU: 
+  // [0:ID, 1:ExamID, 2:Type, 3:Content, 4:ImageURL, 5:Options, 6:CorrectAnswer, 7:IsRequired, 8:Point]
+  sheet.appendRow([
+    id, 
+    data.examId, 
+    data.type, 
+    data.content, 
+    data.image, 
+    opts, 
+    data.correct, 
+    isRequired, 
+    point // Kolom baru untuk bobot nilai
+  ]);
+  
+  return { success: true };
+}
+
+function getQuestionsByExam(examID, userID, token) {
+  // 1. Cari Data Ujian untuk mendapatkan Mapel & Kelas
+  const exSheet = SS.getSheetByName('Exams');
+  const exData = exSheet.getDataRange().getValues();
+  let subject = '', cls = '';
+  
+  for(let k=1; k<exData.length; k++){
+     if(String(exData[k][0]) === String(examID)) {
+        subject = exData[k][1];
+        cls = exData[k][2];
+        break;
+     }
+  }
+  
+  // Jika ujian tidak ditemukan, kembalikan array kosong
+  if(!subject) return []; 
+
+  // 2. Cek Hak Akses (Pastikan user berhak melihat soal ini)
+  const access = checkUserAccess(userID, token, subject, cls);
+  if (!access.allowed) return []; // Return kosong jika akses ditolak
+
+  // 3. Ambil Soal dari Sheet 'Questions'
+  const data = SS.getSheetByName('Questions').getDataRange().getValues();
+  const res = [];
+  
+  data.forEach((r, i) => {
+    // Lewati header (i>0) dan cek kesamaan ExamID (Kolom 1)
+    if(i > 0 && String(r[1]) === String(examID)) {
+      res.push({
+        id: r[0],         // Kolom A
+        examId: r[1],     // Kolom B
+        type: r[2],       // Kolom C
+        content: r[3],    // Kolom D
+        image: r[4],      // Kolom E
+        options: r[5],    // Kolom F
+        key: r[6],        // Kolom G
+        isRequired: r[7], // Kolom H
+        point: r[8]       // Kolom I (BARU: Bobot Nilai)
+      });
+    }
+  });
+  
+  return res;
+}
+
+function deleteQuestion(qId) {
+  const sheet = SS.getSheetByName('Questions');
+  const data = sheet.getDataRange().getValues();
+  for(let i=1; i<data.length; i++) {
+    if(data[i][0] == qId) { sheet.deleteRow(i+1); break; }
+  }
+  return { success: true };
+}
+
+function getExamResults(examID, requestorID, requestorToken) {
+  
+  // --- 1. GERBANG KEAMANAN (SECURITY CHECK) ---
+  // Kita cek manual disini untuk memastikan Requestor adalah ADMIN atau GURU
+  const uSheet = SS.getSheetByName('Users');
+  const uData = uSheet.getDataRange().getValues();
+  
+  let role = '';
+  let isValidSession = false;
+
+  // Cari User yang melakukan request (Admin/Guru)
+  for(let i=1; i<uData.length; i++){
+     if(String(uData[i][0]) === String(requestorID)) {
+         // Cek Token
+         if(String(uData[i][5]) === String(requestorToken)) {
+             isValidSession = true;
+             role = uData[i][3]; // Kolom Role
+         }
+         break;
+     }
+  }
+
+  // TOLAK JIKA: Session salah ATAU Role adalah Siswa
+  if (!isValidSession) {
+      throw new Error("Akses Ditolak: Sesi tidak valid. Silakan login ulang.");
+  }
+  if (role === 'Siswa') {
+      throw new Error("SECURITY ALERT: Siswa dilarang mengakses data rekap nilai!");
+  }
+  // ------------------------------------------------------------
+
+
+  // --- 2. AMBIL DATA USERS (Untuk Mapping Nama) ---
+  // Kita butuh daftar nama agar tabel tidak hanya menampilkan ID
+  const users = {};
+  uData.forEach((r, i) => { 
+      if(i > 0) {
+          // Key: UserID, Value: {Nama, Kelas}
+          users[String(r[0]).trim()] = { name: r[1], cls: r[4] }; 
+      }
+  });
+
+  // --- 3. AMBIL DATA RESPON (NILAI) ---
+  const rSheet = SS.getSheetByName('Responses');
+  const rData = rSheet.getDataRange().getValues();
+  const results = [];
+  
+  // Target ID yang dicari (dibersihkan)
+  const targetID = String(examID).trim();
+
+  // Loop data Responses
+  for (let i = 1; i < rData.length; i++) {
+    // Kolom C (Index 2) adalah ExamID di Sheet Responses
+    const rowExamID = String(rData[i][2]).trim();
+
+    if (rowExamID === targetID) {
+      
+      const studentId = String(rData[i][1]).trim();
+      
+      // Ambil Nama & Kelas dari mapping Users diatas
+      // Jika siswa sudah dihapus, tampilkan 'Unknown'
+      const studentInfo = users[studentId] || { name: 'Unknown User', cls: '-' };
+
+      results.push({
+        responseId: rData[i][0], 
+        studentId: studentId, 
+        name: studentInfo.name,     // <--- Ini yang Anda butuhkan
+        class: studentInfo.cls,     // <--- Ini juga
+        examId: rData[i][2],
+        answers: rData[i][3],
+        score: rData[i][4], 
+        startTime: rData[i][5] ? Utilities.formatDate(new Date(rData[i][5]), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm") : '-',
+        submitTime: rData[i][6] ? Utilities.formatDate(new Date(rData[i][6]), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm") : '-',
+        status: rData[i][7]
+      });
+    }
+  }
+  
+  return results;
+}
+
+
+/* --- TAMBAHAN: FITUR IMPORT GOOGLE FORM --- */
+
+/* --- FITUR IMPORT GOOGLE FORM (VERSI STABIL & PERBAIKAN) --- */
+function importQuestionsFromForm(examID, formURL) {
+  try {
+    // 1. Ekstrak ID dari URL (Lebih stabil daripada openByUrl)
+    // Mencari kode unik di antara /d/ dan /edit
+    const idMatch = formURL.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    
+    if (!idMatch || !idMatch[1]) {
+      return { success: false, message: 'Link Form tidak valid. Pastikan link mengandung /d/ID_FORM/edit' };
+    }
+
+    const formId = idMatch[1];
+    
+    // 2. Buka Form menggunakan ID
+    const form = FormApp.openById(formId);
+    const items = form.getItems();
+    const sheet = SS.getSheetByName('Questions');
+    let count = 0;
+
+    // 3. Loop Item Soal
+    items.forEach(item => {
+      const type = item.getType();
+      let qType = '';
+      let options = [];
+      let content = item.getTitle();
+      let key = ''; 
+      
+      // Deteksi Pilihan Ganda (MULTIPLE_CHOICE)
+      if (type === FormApp.ItemType.MULTIPLE_CHOICE) {
+        qType = 'PG';
+        options = item.asMultipleChoiceItem().getChoices().map(c => c.getValue());
+      } 
+      // Deteksi Isian/Esai (TEXT/PARAGRAPH)
+      else if (type === FormApp.ItemType.TEXT || type === FormApp.ItemType.PARAGRAPH_TEXT) {
+        qType = 'Esai';
+      } 
+      // Deteksi Checkbox (Dianggap PG)
+      else if (type === FormApp.ItemType.CHECKBOX) {
+        qType = 'PG'; 
+        options = item.asCheckboxItem().getChoices().map(c => c.getValue());
+      }
+
+      // Simpan ke Database jika tipe soal dikenali
+      if (qType) {
+        const id = 'Q-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+        const optsStr = JSON.stringify(options);
+        
+        // Simpan baris baru
+        sheet.appendRow([id, examID, qType, content, '', optsStr, key]);
+        count++;
+      }
+    });
+
+    if (count === 0) {
+        return { success: false, message: 'Form ditemukan tapi tidak ada soal Pilihan Ganda/Isian.' };
+    }
+
+    return { success: true, count: count };
+
+  } catch (e) {
+    Logger.log(e.toString());
+    // Deteksi Error Izin
+    if (e.toString().includes("permission") || e.toString().includes("authorization")) {
+        return { success: false, message: 'IZIN DITOLAK: Anda harus menjalankan script ini manual di Editor sekali untuk memberi izin akses Form.' };
+    }
+    return { success: false, message: 'Gagal: ' + e.toString() };
+  }
+}
+
+function copyQuestions(sourceExamId, destinationExamId) {
+  try {
+    // 1. Validasi Input
+    if (!sourceExamId || !destinationExamId || sourceExamId === destinationExamId) {
+      return { success: false, message: 'ID Ujian Sumber dan Tujuan tidak valid atau sama.' };
+    }
+
+    const sheet = SS.getSheetByName('Questions');
+    const allData = sheet.getDataRange().getValues();
+    const header = allData.shift(); // Ambil header, sisakan data
+
+    // 2. Filter soal dari sumber
+    const sourceQuestions = allData.filter(row => row[1] === sourceExamId);
+
+    if (sourceQuestions.length === 0) {
+      return { success: false, message: 'Tidak ada soal yang ditemukan di mapel sumber.' };
+    }
+
+    // 3. Buat baris baru untuk tujuan
+    const newRows = sourceQuestions.map(sourceRow => {
+      let newRow = [...sourceRow]; // Salin semua data dari baris sumber
+      // Ganti QuestionID dengan yang baru & unik
+      newRow[0] = 'Q-' + Date.now() + '-' + Math.round(Math.random() * 100000);
+      // Ganti ExamID dengan ID tujuan
+      newRow[1] = destinationExamId;
+      return newRow;
+    });
+
+    // 4. Lakukan penulisan massal (batch write)
+    if (newRows.length > 0) {
+      sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length)
+           .setValues(newRows);
+    }
+
+    // 5. Kembalikan hasil sukses
+    return { success: true, count: newRows.length };
+
+  } catch (e) {
+    Logger.log('Gagal menyalin soal: ' + e.toString());
+    return { success: false, message: 'Terjadi error di server: ' + e.message };
+  }
+}
+
+/* ============================================================
+   MANAJEMEN UJIAN (EDIT, HAPUS, STATUS)
+   ============================================================ */
+
+// 1. Hapus Ujian
+function deleteExam(examId, userID, token) {
+  const sheet = SS.getSheetByName('Exams');
+  const data = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(examId)) {
+      // Ambil Mapel & Kelas dari data ujian yang mau dihapus untuk validasi
+      const subject = data[i][1];
+      const cls = data[i][2];
+      
+      // 1. Cek Hak Akses sebelum menghapus
+      const access = checkUserAccess(userID, token, subject, cls);
+      if (!access.allowed) return { success: false, message: access.message };
+
+      // 2. Hapus Baris
+      sheet.deleteRow(i + 1);
+      return { success: true };
+    }
+  }
+  return { success: false, message: 'ID Ujian tidak ditemukan.' };
+}
+
+// 2. Toggle Status (Aktif/Non-Aktif)
+function toggleExamStatus(examId, newStatus) {
+  const sheet = SS.getSheetByName('Exams');
+  const data = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(examId)) {
+      // Col 6 = Status (sesuai schema awal: ExamID, Subject, Class, Date, Duration, PIN, Status)
+      sheet.getRange(i + 1, 7).setValue(newStatus); 
+      return { success: true };
+    }
+  }
+  return { success: false };
+}
+
+// 3. Update Data Ujian (Edit)
+function updateExam(data, userID, token) {
+  // 1. Cek Hak Akses
+  const access = checkUserAccess(userID, token, data.subject, data.class);
+  if (!access.allowed) {
+    return { success: false, message: access.message };
+  }
+
+  const sheet = SS.getSheetByName('Exams');
+  const rows = sheet.getDataRange().getValues();
+  const now = new Date(); // Ambil waktu sekarang
+  
+  // 2. Loop cari ID yang sesuai
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(data.examId)) {
+      const rowIdx = i + 1;
+      const startDate = new Date(data.date);
+      const endDate = new Date(data.endDate);
+
+      // Validasi Tanggal
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return { success: false, message: 'Format tanggal invalid.' };
+      }
+
+      if (endDate <= startDate) {
+         return { success: false, message: 'Waktu Selesai harus lebih akhir dari Waktu Mulai.' };
+      }
+
+      // 3. Update Cell
+      sheet.getRange(rowIdx, 2).setValue(data.subject);   // Mapel
+      sheet.getRange(rowIdx, 3).setValue(data.class);     // Kelas
+      sheet.getRange(rowIdx, 4).setValue(startDate);      // Waktu Mulai
+      sheet.getRange(rowIdx, 5).setValue(data.duration);  // Durasi
+      sheet.getRange(rowIdx, 6).setValue(data.pin);       // PIN
+      sheet.getRange(rowIdx, 8).setValue(endDate);        // Waktu Selesai
+      // Update ShuffleConfig (Kolom 9)
+      const defaultShuffle = { PG: false, PG_KOMPLEKS: false, BS: false, JODOH: false, Esai: false };
+      const shuffleConfig = data.shuffleConfig || defaultShuffle;
+      sheet.getRange(rowIdx, 9).setValue(JSON.stringify(shuffleConfig));
+      
+      // === [PERBAIKAN] AUTO-AKTIFKAN KEMBALI ===
+      // Jika waktu selesai yang baru lebih besar dari sekarang (masa depan),
+      // maka otomatis ubah status jadi 'Aktif' agar admin tidak perlu klik manual.
+      if (endDate > now) {
+          sheet.getRange(rowIdx, 7).setValue('Aktif'); 
+      }
+      // =========================================
+      
+      return { success: true };
+    }
+  }
+  return { success: false, message: 'Data ujian tidak ditemukan.' };
+}
+
+function pancingIzinAkses() {
+  // Fungsi ini hanya untuk testing manual agar izin muncul
+  var linkDummy = "https://docs.google.com/forms/d/1MA8hdkedHXFdrZXNDvxTmjy9ggtUBcEmlbKs5RA2iDA/edit";
+  importQuestionsFromForm("TEST_ID", linkDummy);
+}
+
+/* -----------------------------------------------------------
+   TAMBAHAN: updateQuestion (Edit Soal)
+   ----------------------------------------------------------- */
+function updateQuestion(data) {
+  const sheet = SS.getSheetByName('Questions');
+  const rows = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < rows.length; i++) {
+    // Cek jika ID Soal (Kolom 0) cocok dengan ID yang dikirim
+    if (String(rows[i][0]) === String(data.questionId)) {
+      const rowIdx = i + 1;
+      
+      // Persiapan Data untuk disimpan
+      const opts = JSON.stringify(data.options || []);
+      const isRequired = data.isRequired || 'FALSE';
+      
+      // AMBIL NILAI BOBOT (POINT)
+      // Pastikan dikonversi ke Angka (Integer). Default 10 jika kosong.
+      const point = data.point ? parseFloat(String(data.point).replace(',', '.')) : 10;
+
+      // Update Kolom sesuai urutan Schema Database:
+      // Col 3: Type 
+      // Col 4: Content
+      // Col 5: Image
+      // Col 6: Options
+      // Col 7: Key (Correct Answer)
+      // Col 8: IsRequired
+      // Col 9: Point (BARU - Bobot Nilai)
+      
+      sheet.getRange(rowIdx, 3).setValue(data.type);
+      sheet.getRange(rowIdx, 4).setValue(data.content);
+      sheet.getRange(rowIdx, 5).setValue(data.image);
+      sheet.getRange(rowIdx, 6).setValue(opts);
+      sheet.getRange(rowIdx, 7).setValue(data.correct);
+      sheet.getRange(rowIdx, 8).setValue(isRequired);
+      sheet.getRange(rowIdx, 9).setValue(point); // Simpan perubahan bobot
+      
+      return { success: true };
+    }
+  }
+  
+  return { success: false, message: 'ID Soal tidak ditemukan.' };
+}
+
+/* --- FITUR KOREKSI ESAI --- */
+
+// 1. Ambil Jawaban Esai Siswa
+function getEssayData(responseId) {
+  const rSheet = SS.getSheetByName('Responses');
+  const rData = rSheet.getDataRange().getValues();
+  
+  let responseRow = null;
+  // 1. Cari baris data berdasarkan ResponseID
+  for (let i = 1; i < rData.length; i++) {
+    // Menggunakan String() agar aman membandingkan angka maupun teks
+    if (String(rData[i][0]) === String(responseId)) {
+      responseRow = rData[i];
+      break;
+    }
+  }
+  
+  // Jika data tidak ditemukan, kembalikan error
+  if (!responseRow) return { success: false, message: 'Data siswa tidak ditemukan.' };
+
+  const examID = responseRow[2];
+  // Ambil data JSON jawaban dari kolom D (index 3)
+  const answers = JSON.parse(responseRow[3] || '{}'); 
+
+  // 2. Ambil Soal Esai dari Database Questions
+  const qSheet = SS.getSheetByName('Questions');
+  const qData = qSheet.getDataRange().getValues();
+  
+  const essays = [];
+  qData.forEach((r, i) => {
+    // Struktur Kolom Questions: r[0]=ID, r[1]=ExamID, r[2]=Type, r[3]=Content
+    if (i > 0 && String(r[1]) === String(examID) && r[2] === 'Esai') {
+      essays.push({
+        id: r[0],
+        question: r[3],
+        answer: answers[r[0]] || '(Tidak dijawab)' // Ambil jawaban siswa berdasarkan ID Soal
+      });
+    }
+  });
+
+  // 3. FITUR BARU: Ambil Nilai Esai yang Sudah Tersimpan (Retrieve)
+  // Kita cek apakah ada properti '_manual_essay_score' di dalam JSON answers.
+  // Jika ada, gunakan nilai itu. Jika tidak, default 0.
+  let savedScore = 0;
+  if (answers['_manual_essay_score'] !== undefined && answers['_manual_essay_score'] !== null) {
+    savedScore = parseInt(answers['_manual_essay_score']);
+  }
+
+  // 4. Kembalikan data lengkap ke Client
+  return { 
+    success: true, 
+    data: essays, 
+    studentName: responseRow[1],
+    existingScore: savedScore // Nilai ini akan dimasukkan ke input box di Frontend
+  };
+}
+
+// 2. Simpan Nilai Esai & Hitung Ulang Total
+function saveEssayGrade(responseId, essayScoreInput) {
+  const rSheet = SS.getSheetByName('Responses');
+  const rData = rSheet.getDataRange().getValues();
+  const qSheet = SS.getSheetByName('Questions');
+  const qData = qSheet.getDataRange().getValues();
+  
+  let rowIndex = -1;
+  let examID = '';
+  let answers = {};
+  
+  // 1. Cari Data Response berdasarkan ResponseID
+  for (let i = 1; i < rData.length; i++) {
+    if (String(rData[i][0]) === String(responseId)) {
+      rowIndex = i + 1;
+      examID = rData[i][2];
+      try {
+        answers = JSON.parse(rData[i][3] || '{}');
+      } catch (e) {
+        answers = {};
+      }
+      break;
+    }
+  }
+  
+  if (rowIndex === -1) return { success: false, message: 'Data respon tidak ditemukan.' };
+
+  // -----------------------------------------------------------
+  // 2. VALIDASI & SANITASI INPUT NILAI ESAI
+  // -----------------------------------------------------------
+  // Pastikan inputVal adalah angka valid, non-negatif
+  const parsed = parseFloat(String(essayScoreInput).trim());
+  const inputVal = (!isNaN(parsed) && parsed >= 0) ? parsed : 0;
+
+  // Hitung total bobot maksimal soal Esai saja (untuk validasi batas atas)
+  let maxEssayPoints = 0;
+  qData.forEach((row, i) => {
+    if (i > 0 && String(row[1]) === String(examID) && row[2] === 'Esai') {
+      const w = row[8] ? parseFloat(row[8]) : 10;
+      if (!isNaN(w)) maxEssayPoints += w;
+    }
+  });
+
+  // Tolak jika poin melebihi total bobot soal esai
+  if (maxEssayPoints > 0 && inputVal > maxEssayPoints) {
+    return { 
+      success: false, 
+      message: `Poin esai (${inputVal}) melebihi total bobot maksimal soal esai (${maxEssayPoints}).` 
+    };
+  }
+
+  // Simpan ke dalam JSON agar history nilai guru tidak hilang
+  answers['_manual_essay_score'] = inputVal;
+
+  // -----------------------------------------------------------
+  // 3. HITUNG ULANG TOTAL SKOR (RECALCULATE)
+  // -----------------------------------------------------------
+  // Helper: ekstrak jawaban murni dari format baru {answer, score} atau format lama
+  function extractAnswer(rawAns) {
+    if (rawAns && typeof rawAns === 'object' && !Array.isArray(rawAns) && rawAns.hasOwnProperty('answer')) {
+      return rawAns.answer;
+    }
+    return rawAns;
+  }
+
+  // Helper: konversi kunci huruf (A/B/C) ke teks opsi
+  function convertLetterKey(keyArr, optionsArr) {
+    const mapHuruf = ['A', 'B', 'C', 'D', 'E'];
+    return keyArr.map(k => {
+      const cleanK = String(k).trim().toUpperCase();
+      const idx = mapHuruf.indexOf(cleanK);
+      if (idx !== -1 && optionsArr && optionsArr[idx]) {
+        return String(optionsArr[idx]).trim().toLowerCase();
+      }
+      return cleanK.toLowerCase();
+    });
+  }
+
+  // Helper: normalisasi object/array ke Map untuk perbandingan JODOH/BS
+  function normalizeToMap(rawData) {
+    let mapData = {};
+    if (!rawData) return mapData;
+    let parsed = rawData;
+    if (typeof parsed === 'string') {
+      try { parsed = JSON.parse(parsed); } catch(e) { return {}; }
+    }
+    if (Array.isArray(parsed)) {
+      parsed.forEach(item => {
+        const qKey = String(item.q || item.question || item.key || '').replace(/[\s"'{}]/g, '').toLowerCase().trim();
+        const aVal = String(item.a || item.answer || item.value || '').replace(/[\s"'{}]/g, '').toLowerCase().trim();
+        if (qKey) mapData[qKey] = aVal;
+      });
+    } else if (typeof parsed === 'object') {
+      for (let k in parsed) {
+        const cleanK = String(k).replace(/[\s"'{}]/g, '').toLowerCase().trim();
+        const cleanV = String(parsed[k]).replace(/[\s"'{}]/g, '').toLowerCase().trim();
+        mapData[cleanK] = cleanV;
+      }
+    }
+    return mapData;
+  }
+
+  let totalPoints = 0; // Poin objektif yang didapat siswa
+  let maxPoints = 0;   // Total Bobot Maksimal seluruh soal
+
+  qData.forEach((row, i) => {
+    if (i > 0 && String(row[1]) === String(examID)) {
+      const qid     = row[0];
+      const type    = row[2];
+      const optRaw  = row[5];
+      const keyRaw  = row[6];
+
+      // AMBIL BOBOT (Col I / Index 8). Default 10 jika kosong.
+      const weight = (row[8] !== '' && !isNaN(parseFloat(row[8]))) ? parseFloat(row[8]) : 10;
+      maxPoints += weight;
+
+      // Ekstrak jawaban murni (handle format baru {answer, score})
+      const userAns = extractAnswer(answers[qid]);
+
+      // ============================================================
+      // A. PILIHAN GANDA (PG)
+      // ============================================================
+      if (type === 'PG') {
+        const cleanUser = String(userAns || '').trim().toLowerCase();
+        const cleanKey  = String(keyRaw || '').trim();
+        const mapHuruf  = ['A', 'B', 'C', 'D', 'E'];
+        const keyIndex  = mapHuruf.indexOf(cleanKey.toUpperCase());
+        let isCorrect   = false;
+
+        if (keyIndex !== -1) {
+          // Kunci berupa huruf → bandingkan dengan teks opsi
+          let opts = [];
+          try { opts = JSON.parse(optRaw); } catch(e) {}
+          if (opts[keyIndex]) {
+            const txt = String(opts[keyIndex]).trim().toLowerCase();
+            if (cleanUser === txt && txt !== '') isCorrect = true;
+          }
+        } else {
+          // Kunci berupa teks langsung
+          if (cleanUser === cleanKey.toLowerCase()) isCorrect = true;
+        }
+
+        if (isCorrect) totalPoints += weight;
+      }
+
+      // ============================================================
+      // B. PG KOMPLEKS — Partial Credit (dengan konversi huruf ke teks)
+      // ============================================================
+      else if (type === 'PG_KOMPLEKS') {
+        let keyArr = [], ansArr = [], optionsArr = [];
+
+        try { keyArr = JSON.parse(keyRaw); }
+        catch(e) { keyArr = String(keyRaw || '').split(',').map(s => s.trim()).filter(s => s); }
+
+        try { optionsArr = JSON.parse(optRaw); }
+        catch(e) { optionsArr = []; }
+
+        if (Array.isArray(userAns)) {
+          ansArr = userAns;
+        } else {
+          try { ansArr = JSON.parse(userAns); }
+          catch(e) { ansArr = String(userAns || '').split(',').map(s => s.trim()).filter(s => s); }
+        }
+
+        // Konversi kunci huruf → teks opsi (FIX: sama dengan getStudentAnswerDetails)
+        const kNorm = convertLetterKey(keyArr, optionsArr);
+        const uNorm = ansArr.map(s => String(s).trim().toLowerCase());
+
+        let match = 0, wrong = 0;
+        uNorm.forEach(u => {
+          if (kNorm.includes(u)) match++;
+          else wrong++;
+        });
+
+        // Partial Credit hanya jika tidak ada jawaban salah
+        if (wrong === 0 && match > 0) {
+          totalPoints += (match / kNorm.length) * weight;
+        }
+      }
+
+      // ============================================================
+      // C. BENAR/SALAH (BS) — Partial Credit
+      // ============================================================
+      else if (type === 'BS') {
+        let kObj = {};
+        try { kObj = JSON.parse(keyRaw || '{}'); } catch(e) {}
+
+        // Jawaban siswa bisa berupa object atau JSON string
+        let uObj = {};
+        if (typeof userAns === 'object' && userAns !== null && !Array.isArray(userAns)) {
+          uObj = userAns;
+        } else {
+          try { uObj = JSON.parse(userAns); } catch(e) {}
+        }
+
+        let match = 0, count = 0;
+        for (let k in kObj) {
+          count++;
+          const kv = String(kObj[k]).trim().toLowerCase();
+          const uv = String(uObj[k] || '').trim().toLowerCase();
+          // Dukung variasi label: benar/sesuai, salah/tidak sesuai
+          if (kv === uv
+            || (kv === 'benar' && uv === 'sesuai')
+            || (kv === 'salah' && uv === 'tidak sesuai')) {
+            match++;
+          }
+        }
+        if (count > 0) totalPoints += (match / count) * weight;
+      }
+
+      // ============================================================
+      // D. MENJODOHKAN (JODOH) — Partial Credit (Map vs Map)
+      // ============================================================
+      else if (type === 'JODOH' || type === 'MATCHING') {
+        // Gunakan normalizeToMap agar konsisten dengan getStudentAnswerDetails
+        let keyMap = normalizeToMap(keyRaw);
+
+        // Jika kunci kosong, fallback ke Options (format [{q,a}])
+        if (Object.keys(keyMap).length === 0) {
+          keyMap = normalizeToMap(optRaw);
+        }
+
+        const stuMap    = normalizeToMap(userAns);
+        const totalItems = Object.keys(keyMap).length;
+
+        if (totalItems > 0) {
+          let matchCount = 0;
+          for (let k in keyMap) {
+            if (stuMap[k] === keyMap[k]) matchCount++;
+          }
+          totalPoints += (matchCount / totalItems) * weight;
+        }
+      }
+
+      // ============================================================
+      // E. ESAI — tidak dihitung otomatis, ditangani oleh inputVal
+      // ============================================================
+    }
+  });
+
+  // 4. Tambahkan Poin Esai Manual ke Total Poin Objektif
+  totalPoints += inputVal;
+
+  // 5. Hitung Skor Akhir (Skala 100)
+  const finalScore = maxPoints > 0 ? Math.round((totalPoints / maxPoints) * 100) : 0;
+
+  // -----------------------------------------------------------
+  // 6. UPDATE DATABASE
+  // -----------------------------------------------------------
+  rSheet.getRange(rowIndex, 4).setValue(JSON.stringify(answers));
+  rSheet.getRange(rowIndex, 5).setValue(finalScore);
+
+  return { 
+    success: true, 
+    message: 'Nilai berhasil disimpan.', 
+    finalScore: finalScore,
+    essayScore: inputVal,
+    maxEssayPoints: maxEssayPoints
+  };
+}
+
+
+/* -----------------------------------------------------------
+   TAMBAHAN: FITUR IMPORT EXCEL (BATCH SAVE)
+   ----------------------------------------------------------- */
+
+function saveImportedQuestions(examID, questionsData) {
+  const sheet = SS.getSheetByName('Questions');
+  
+  // Validasi ID Ujian
+  if (!examID) return { success: false, message: 'ID Ujian tidak valid.' };
+  
+  let count = 0;
+
+  try {
+    // Loop data yang dikirim dari Client
+    questionsData.forEach(q => {
+      // Generate ID Unik
+      const id = 'Q-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+      
+      // Pastikan format Options adalah JSON String valid
+      let opts = '[]';
+      try {
+        if (typeof q.options === 'object') opts = JSON.stringify(q.options);
+        else if (typeof q.options === 'string') opts = q.options;
+      } catch (e) { opts = '[]'; }
+      
+      // Default Values
+      const type = q.type || 'PG';
+      const content = q.content || '-';
+      const image = q.image || '';
+      const correct = q.correct || '';
+      const isRequired = q.isRequired ? String(q.isRequired).toUpperCase() : 'FALSE';
+
+      // Append Row sesuai Schema:
+      // [QuestionID, ExamID, Type, Content, ImageURL, Options, CorrectAnswer, IsRequired]
+      sheet.appendRow([id, examID, type, content, image, opts, correct, isRequired]);
+      count++;
+    });
+
+    return { success: true, count: count };
+    
+  } catch (e) {
+    return { success: false, message: 'Error Server: ' + e.toString() };
+  }
+}
+
+/* --- FITUR UJIAN ULANG / RESET --- */
+/**
+ * Fungsi Reset Ujian Siswa
+ * Diperbarui untuk mengizinkan Role 'Guru' melakukan reset.
+ */
+function resetStudentExam(responseId, requestorID, requestorToken) {
+  // -------------------------------------------------------------
+  // 1. VALIDASI USER & ROLE (PENGGANTI verifyAdminAccess)
+  // -------------------------------------------------------------
+  
+  // Ambil data dari sheet Users untuk memverifikasi siapa yang meminta request ini
+  const userSheet = SS.getSheetByName('Users');
+  const userRows = userSheet.getDataRange().getValues();
+  
+  let requestorRole = null;
+  let isAuthenticated = false;
+
+  // Loop untuk mencari user berdasarkan ID dan Token
+  // Schema Index: 0=UserID, 3=Role, 5=SessionToken (Sesuai struktur User di code.gs)
+  for (let i = 1; i < userRows.length; i++) {
+    const row = userRows[i];
+    if (String(row[0]) === String(requestorID) && String(row[5]) === String(requestorToken)) {
+      requestorRole = row[3]; // Ambil Role (Admin/Guru/Siswa)
+      isAuthenticated = true;
+      break;
+    }
+  }
+
+  // Cek 1: Apakah user ditemukan dan login valid?
+  if (!isAuthenticated) {
+    throw new Error("Akses Ditolak: Sesi tidak valid atau pengguna tidak ditemukan.");
+  }
+
+  // Cek 2: Apakah Role diperbolehkan? (Hanya Admin ATAU Guru)
+  if (requestorRole !== 'Admin' && requestorRole !== 'Guru') {
+    throw new Error("Akses Ditolak: Anda tidak memiliki izin untuk mereset ujian.");
+  }
+
+  // -------------------------------------------------------------
+  // 2. PROSES PENGHAPUSAN RESPONS
+  // -------------------------------------------------------------
+  const sheet = SS.getSheetByName('Responses');
+  const data = sheet.getDataRange().getValues();
+  let isDeleted = false;
+  
+  // Loop dari bawah ke atas (praktik terbaik saat menghapus baris agar indeks tidak bergeser)
+  for (let i = data.length - 1; i >= 1; i--) {
+    // Kolom ke-0 adalah ResponseID
+    if (String(data[i][0]) === String(responseId)) {
+      sheet.deleteRow(i + 1); // +1 karena array mulai dari 0, sheet mulai dari 1
+      isDeleted = true;
+      break; // Berhenti setelah menemukan dan menghapus
+    }
+  }
+
+  // -------------------------------------------------------------
+  // 3. RETURN HASIL
+  // -------------------------------------------------------------
+  if (isDeleted) {
+    return { 
+      success: true, 
+      message: "Data ujian berhasil di-reset. Siswa dapat login kembali." 
+    };
+  } else {
+    return { 
+      success: false, 
+      message: "Data respon tidak ditemukan atau sudah terhapus." 
+    };
+  }
+}
+
+function getUserNameById(uid) {
+  const sheet = SS.getSheetByName('Users');
+  const data = sheet.getDataRange().getValues();
+  for(let i=1; i<data.length; i++) {
+    if(String(data[i][0]) === String(uid)) return data[i][1];
+  }
+  return "Unknown";
+}
+
+/* ============================================================
+   MANAJEMEN MASTER DATA (KELAS & MAPEL)
+   ============================================================ */
+
+function getMasterData() {
+  try {
+    const sheet = SS.getSheetByName('Master_Data');
+    if (!sheet) return { classes: [], subjects: [] };
+
+    const data = sheet.getDataRange().getValues();
+    const lastRow = sheet.getLastRow();
+    
+    let classes = [];
+    let subjects = [];
+
+    // Kolom A untuk Kelas (indeks 0), Kolom B untuk Mapel (indeks 1)
+    for (let i = 1; i < lastRow; i++) { // Mulai dari 1 untuk lewati header
+      if (data[i][0] && String(data[i][0]).trim() !== '') {
+        classes.push(String(data[i][0]).trim());
+      }
+      if (data[i][1] && String(data[i][1]).trim() !== '') {
+        subjects.push(String(data[i][1]).trim());
+      }
+    }
+    return { classes: classes, subjects: subjects };
+  } catch (e) {
+    Logger.log('Error getting master data: ' + e.message);
+    return { classes: [], subjects: [] };
+  }
+}
+
+function saveMasterData(data, requestorID, requestorToken) {
+  try {
+    // 1. Keamanan: Hanya Admin yang boleh menyimpan
+    verifyAdminAccess(requestorID, requestorToken);
+
+    const sheet = SS.getSheetByName('Master_Data');
+    if (!sheet) throw new Error('Sheet "Master_Data" tidak ditemukan.');
+
+    const classes = data.classes || [];
+    const subjects = data.subjects || [];
+
+    // 2. Hapus data lama (dari baris 2 ke bawah)
+    if (sheet.getLastRow() > 1) {
+      sheet.deleteRows(2, sheet.getLastRow() - 1);
+    }
+    
+    // 3. Siapkan data baru untuk ditulis
+    const maxLen = Math.max(classes.length, subjects.length);
+    const newValues = [];
+    for (let i = 0; i < maxLen; i++) {
+      newValues.push([
+        classes[i] || '',  // Isi kelas atau string kosong jika sudah habis
+        subjects[i] || '' // Isi mapel atau string kosong jika sudah habis
+      ]);
+    }
+
+    // 4. Tulis data baru dalam satu operasi (batch)
+    if (newValues.length > 0) {
+      sheet.getRange(2, 1, newValues.length, 2).setValues(newValues);
+    }
+
+    return { success: true, message: 'Data Master berhasil diperbarui.' };
+  } catch (e) {
+    Logger.log('Save Master Data Failed: ' + e.message);
+    return { success: false, message: e.message };
+  }
+}
+
+
+/* ============================================================
+   MANAJEMEN USER (SISWA & ADMIN)
+   ============================================================ */
+
+// 1. Ambil Daftar User
+function getUserList(requestorID, requestorToken) {
+ 
+  // ── 1. VALIDASI SESI & AMBIL ROLE ──────────────────────────────────
+  const uSheet = SS.getSheetByName('Users');
+  const uData  = uSheet.getDataRange().getValues();
+ 
+  let requestorRole = null;
+  let guruClasses   = []; // Daftar kelas yang diajar guru, huruf kecil
+ 
+  for (let i = 1; i < uData.length; i++) {
+    if (String(uData[i][0]) === String(requestorID) &&
+        String(uData[i][5]) === String(requestorToken)) {
+      
+      requestorRole = String(uData[i][3]).trim();
+      const isActive = String(uData[i][6]).toUpperCase() === 'TRUE';
+      
+      if (!isActive) throw new Error('Akses Ditolak: Akun Anda dinonaktifkan.');
+ 
+      // Untuk Guru: parse kelas yang diajar dari kolom Class
+      // Format di sheet: "Matematika:XII-RPL,Fisika:XII-TKJ"
+      if (requestorRole === 'Guru') {
+        const raw = String(uData[i][4] || '');
+        raw.split(',').forEach(item => {
+          const parts = item.split(':');
+          if (parts.length >= 2) {
+            guruClasses.push(parts[1].trim().toLowerCase());
+          }
+        });
+      }
+      break;
+    }
+  }
+ 
+  if (!requestorRole)
+    throw new Error('Akses Ditolak: Sesi tidak valid atau kadaluarsa. Silakan login ulang.');
+ 
+  if (requestorRole !== 'Admin' && requestorRole !== 'Guru')
+    throw new Error('Akses Ditolak: Anda tidak memiliki izin.');
+ 
+  // ── 2. FILTER & KUMPULKAN DATA USER ────────────────────────────────
+  const users = [];
+ 
+  for (let i = 1; i < uData.length; i++) {
+    const row = uData[i];
+    if (!row[0]) continue; // Skip baris kosong
+ 
+    const role  = String(row[3]).trim();
+    const kelas = String(row[4] || '').trim();
+ 
+    // Admin  → tampilkan semua user (Admin, Guru, Siswa)
+    // Guru   → HANYA tampilkan Siswa dari kelas yang diajarnya
+    if (requestorRole === 'Guru') {
+      if (role !== 'Siswa') continue;
+      if (!guruClasses.includes(kelas.toLowerCase())) continue;
+    }
+ 
+    users.push({
+      id:       row[0],  // UserID
+      username: row[1],  // Nama
+      password: row[2],  // Password
+      role:     role,    // Role
+      class:    kelas,   // Kelas
+      // Token (index 5) TIDAK dikirim ke client
+      isActive: row[6]   // IsActive
+    });
+  }
+ 
+  return users;
+}
+
+// 2. Tambah User Baru
+/* --- TAMBAHKAN DI CODE.GS JIKA BELUM ADA --- */
+
+function createUser(form, requestorID, requestorToken) {
+  try {
+    // 1. GERBANG KEAMANAN: Cek apakah yang minta benar-benar Admin?
+    verifyAdminAccess(requestorID, requestorToken); 
+
+    const sheet = SS.getSheetByName('Users');
+    const data = sheet.getDataRange().getValues();
+    
+    // 2. Validasi Input Dasar
+    if (!form.userId || !form.username || !form.password) {
+       return { success: false, message: 'Data tidak lengkap!' };
+    }
+
+    // 3. Cek Duplikat ID
+    // Convert ke String untuk perbandingan aman
+    const idExists = data.some(row => String(row[0]) === String(form.userId));
+    if (idExists) {
+      return { success: false, message: 'User ID sudah terdaftar!' };
+    }
+    
+    // 4. Simpan Data
+    sheet.appendRow([
+      "'" + form.userId,  // Pakai tanda petik agar tidak dianggap angka
+      form.username, 
+      "'" + form.password,
+      form.role, 
+      form.class || '-',  // Default strip jika kosong
+      '',                 // Token kosong (karena user baru belum login)
+      'TRUE'              // Default Aktif
+    ]);
+    
+    return { success: true };
+
+  } catch (e) {
+    Logger.log("Create User Failed: " + e.message);
+    return { success: false, message: e.message };
+  }
+}
+function updateUser(form) {
+  const sheet = SS.getSheetByName('Users');
+  const data = sheet.getDataRange().getValues();
+  
+  // Loop cari ID
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(form.userId)) {
+      // Ketemu! Update kolom-kolomnya
+      // Baris = i + 1 (karena index mulai 0, row sheet mulai 1)
+      
+      sheet.getRange(i + 1, 2).setValue(form.username); // Col B: Username
+      sheet.getRange(i + 1, 3).setValue("'" + form.password);
+      sheet.getRange(i + 1, 4).setValue(form.role);     // Col D: Role
+      sheet.getRange(i + 1, 5).setValue(form.class);    // Col E: Class
+      
+      return { success: true };
+    }
+  }
+  
+  return { success: false, message: 'User tidak ditemukan.' };
+}
+
+// 4. Hapus User
+function deleteUser(targetUserId, requestorID, requestorToken) {
+  try {
+    // --- GERBANG KEAMANAN ---
+    // Sebelum hapus, cek dulu: Siapa kamu? Punya akses gak?
+    verifyAdminAccess(requestorID, requestorToken);
+    // ------------------------
+
+    const sheet = SS.getSheetByName('Users');
+    const data = sheet.getDataRange().getValues();
+    let rowToDelete = -1;
+
+    // Cari baris target
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(targetUserId)) {
+        rowToDelete = i + 1; // Karena array mulai dari 0, row spreadsheet mulai dari 1
+        break;
+      }
+    }
+
+    if (rowToDelete > 0) {
+      sheet.deleteRow(rowToDelete);
+      return { success: true, message: "User berhasil dihapus." };
+    } else {
+      return { success: false, message: "User target tidak ditemukan." };
+    }
+
+  } catch (e) {
+    // Catat log error di server jika perlu
+    Logger.log("Delete Failed: " + e.message);
+    return { success: false, message: e.message };
+  }
+}
+
+// 5. Toggle Status User (Aktif/Non-Aktif)
+function toggleUserStatus(userId, currentStatus) {
+  const sheet = SS.getSheetByName('Users');
+  const data  = sheet.getDataRange().getValues();
+
+  // ✅ Normalisasi currentStatus ke uppercase string agar konsisten
+  const isCurrentlyActive = String(currentStatus).toUpperCase().trim() === 'TRUE';
+  const newStatus = isCurrentlyActive ? 'FALSE' : 'TRUE';
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(userId)) {
+      sheet.getRange(i + 1, 7).setValue(newStatus); // Kolom G = IsActive
+      return { success: true, newStatus: newStatus };
+    }
+  }
+  return { success: false, message: 'User tidak ditemukan.' };
+}
+
+
+/* ============================================================
+   FITUR IMPORT USER (BULK)
+   ============================================================ */
+function importUsersBulk(usersData) {
+  const sheet = SS.getSheetByName('Users');
+  const existingData = sheet.getDataRange().getValues();
+  
+  // 1. Ambil list ID dan Username yang sudah ada untuk validasi duplikat
+  const existingIds = existingData.map(r => String(r[0]).replace(/^'/, '')); // Kolom A
+  const existingUsernames = existingData.map(r => String(r[1]).toLowerCase()); // Kolom B
+  
+  let successCount = 0;
+  let failCount = 0;
+  let skippedDetails = [];
+
+  // 2. Loop data yang masuk
+  usersData.forEach(user => {
+    const rawId = user.id ? String(user.id).trim() : ''; 
+    const username = String(user.username || '').trim();
+    const role = user.role || 'Siswa';
+    const password = String(user.password || '123456'); // Default pass
+    const kelas = user.class || '-';
+
+    // Validasi Dasar
+    if (!username) {
+      failCount++;
+      return;
+    }
+
+    // Cek Duplikat ID (Jika ID diisi di Excel)
+    if (rawId && existingIds.includes(rawId)) {
+      failCount++;
+      skippedDetails.push(`ID ${rawId} sudah ada`);
+      return;
+    }
+
+    // Cek Duplikat Username
+    if (existingUsernames.includes(username.toLowerCase())) {
+      failCount++;
+      skippedDetails.push(`Username ${username} sudah ada`);
+      return;
+    }
+
+    // Generate ID Otomatis jika kosong (Format: SIS-TIMESTAMP)
+    // Jika ada ID manual, tambahkan tanda kutip '
+    const finalId = rawId ? `'${rawId}` : `'${(role === 'Siswa' ? 'SIS' : 'GURU')}-${Date.now().toString().slice(-6) + Math.floor(Math.random()*100)}`;
+    const finalPass = `'${password}`; // Password pakai kutip
+
+    // Simpan ke Sheet
+    sheet.appendRow([
+      finalId,
+      username,
+      finalPass,
+      role,
+      kelas,
+      '',     // Session Token
+      'TRUE'  // IsActive
+    ]);
+
+    // Update Cache lokal untuk pengecekan baris berikutnya (agar tidak duplikat sesama data import)
+    if(rawId) existingIds.push(rawId);
+    existingUsernames.push(username.toLowerCase());
+    successCount++;
+  });
+
+  return { 
+    success: true, 
+    imported: successCount, 
+    failed: failCount,
+    details: skippedDetails.slice(0, 5) // Kirim 5 sampel error saja
+  };
+}
+
+/* ============================================================
+   FITUR GENERATE PDF REKAP UJIAN
+   ============================================================ */
+
+/**
+ * Fungsi utama untuk menghasilkan PDF Rekap Hasil Ujian
+ */
+function generateExamRecapPDF(examID, userID, token) {
+  // 1. Ambil Data Ujian (Header)
+  const examSheet = SS.getSheetByName('Exams');
+  const examRows = examSheet.getDataRange().getValues();
+  let examInfo = null;
+  
+  for (let i = 1; i < examRows.length; i++) {
+    if (String(examRows[i][0]) === String(examID)) {
+      examInfo = {
+        subject: examRows[i][1],
+        class: examRows[i][2],
+        date: examRows[i][3],
+        duration: examRows[i][4]
+      };
+      break;
+    }
+  }
+
+  if (!examInfo) return { success: false, message: 'Data Ujian tidak ditemukan.' };
+
+  // 2. Ambil Data Hasil (Isi Tabel)
+  // Kita menggunakan fungsi getExamResults yang sudah ada untuk konsistensi data
+  const results = getExamResults(examID, userID, token);
+  
+  // Sortir berdasarkan Nama Siswa secara A-Z
+  results.sort((a, b) => a.name.localeCompare(b.name));
+
+  // 3. Konfigurasi Judul & Sub-Judul
+  const title = "REKAPITULASI HASIL UJIAN";
+  const subTitle = `MATA PELAJARAN: ${examInfo.subject.toUpperCase()} | KELAS: ${examInfo.class}`;
+
+  // 4. Generate HTML
+  const htmlContent = generateExamHTML(results, title, subTitle, examInfo);
+  
+  // 5. Buat PDF Blob
+  const blob = Utilities.newBlob(htmlContent, 'text/html', 'document.html');
+  const pdfBlob = blob.getAs('application/pdf').setName(`REKAP_NILAI_${examInfo.class}_${examInfo.subject}.pdf`);
+
+  // 6. Simpan ke Google Drive
+  // Cek apakah folder 'SIPADU_REPORTS' ada, jika tidak buat baru
+  const folders = DriveApp.getFoldersByName("SIPADU_REPORTS");
+  let targetFolder;
+  if (folders.hasNext()) {
+    targetFolder = folders.next();
+  } else {
+    targetFolder = DriveApp.createFolder("SIPADU_REPORTS");
+  }
+
+  const file = targetFolder.createFile(pdfBlob);
+  
+  // Set permission agar bisa diakses (View Only untuk siapa saja yang punya link)
+  // Note: Jika domain Google Workspace membatasi, ini mungkin perlu disesuaikan.
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+  return { success: true, url: 'https://drive.google.com/uc?export=download&id=' + file.getId() };
+}
+
+/**
+ * Helper: Mengubah URL Gambar menjadi Base64 agar muncul di PDF Google Script
+ */
+function imageUrlToBase64(url) {
+  try {
+    const response = UrlFetchApp.fetch(url);
+    const blob = response.getBlob();
+    const bytes = blob.getBytes();
+    const base64 = Utilities.base64Encode(bytes);
+    return "data:" + blob.getContentType() + ";base64," + base64;
+  } catch (e) {
+    Logger.log("Gagal memuat gambar: " + e);
+    return ""; // Return kosong jika gagal
+  }
+}
+
+/**
+ * Generator HTML Layout (Landscape/Portrait sesuai kebutuhan)
+ */
+function generateExamHTML(data, title, subTitle, info) {
+  // Logo Default (Ganti URL ini dengan logo instansi Anda jika perlu)
+  const defaultLogoKiri = 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Logo_of_Ministry_of_Education_and_Culture_of_Republic_of_Indonesia.svg/600px-Logo_of_Ministry_of_Education_and_Culture_of_Republic_of_Indonesia.svg.png';
+  const logoKiri = imageUrlToBase64(defaultLogoKiri);
+  
+  // Config Text Kop Surat
+  const txtBaris1 = 'PEMERINTAH KOTA BANDUNG';
+  const txtBaris2 = 'DINAS PENDIDIKAN';
+  const txtBaris3 = 'SDN 129 RANCASAWO MARGASARI KOTA BANDUNG';
+  const txtAlamat = 'Jln. Rancasawo No. 50 Kecamatan Buahbatu, Kota Bandung';
+  
+  // Format Tanggal Cetak
+  const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd MMMM yyyy");
+
+  // Build Table Rows
+  let tableRows = '';
+  data.forEach((d, i) => {
+    // Styling warna nilai
+    let scoreColor = '#000';
+    if(d.score < 50) scoreColor = '#dc2626'; // Merah
+    else if (d.score >= 75) scoreColor = '#16a34a'; // Hijau
+
+    tableRows += `
+      <tr>
+        <td style="text-align:center">${i+1}</td>
+        <td style="text-align:center">${d.studentId}</td>
+        <td>${d.name}</td>
+        <td style="text-align:center">${d.class}</td>
+        <td style="text-align:center">${d.submitTime}</td>
+        <td style="text-align:center">${d.status}</td>
+        <td style="text-align:center; font-weight:bold; color:${scoreColor}">${d.score}</td>
+      </tr>`;
+  });
+
+  return `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <style>
+      @page { size: A4; margin: 10mm; }
+      body { font-family: Arial, sans-serif; font-size: 11px; margin: 0; padding: 0; color: #333; }
+      
+      /* KOP SURAT */
+      .kop-surat { 
+        display: flex; align-items: center; justify-content: space-between; 
+        border-bottom: 3px solid black; padding-bottom: 10px; margin-bottom: 20px;
+      }
+      .kop-left { width: 15%; text-align: center; }
+      .kop-center { width: 85%; text-align: center; }
+      .kop-img { height: 80px; width: auto; }
+      
+      .kop-text h2 { margin: 2px; font-size: 18px; text-transform: uppercase; font-weight: bold; }
+      .kop-text h3 { margin: 2px; font-size: 14px; text-transform: uppercase; font-weight: bold; }
+      .kop-text p { margin: 1px; font-size: 12px; font-style: italic;}
+
+      /* JUDUL DOKUMEN */
+      .doc-title { text-align: center; margin-bottom: 20px; }
+      .doc-title h1 { font-size: 14px; margin: 5px 0; text-transform: uppercase; text-decoration: underline; }
+      .doc-title p { font-size: 12px; margin: 0; font-weight: bold; }
+
+      /* TABEL */
+      table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+      th, td { border: 1px solid #333; padding: 6px 8px; vertical-align: middle; }
+      th { background-color: #f3f4f6; font-weight: bold; text-align: center; height: 30px; text-transform: uppercase; font-size: 10px; }
+      tr:nth-child(even) { background-color: #f9fafb; }
+
+      /* TTD */
+      .signature-section { margin-top: 40px; display: flex; justify-content: flex-end; page-break-inside: avoid; }
+      .sig-box { width: 200px; text-align: center; }
+      .sig-space { height: 70px; }
+      .sig-name { font-weight: bold; text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <div class="kop-surat">
+      <div class="kop-left"><img src="${logoKiri}" class="kop-img"></div>
+      <div class="kop-center kop-text">
+        <h2>${txtBaris1}</h2>
+        <h2>${txtBaris2}</h2>
+        <h3>${txtBaris3}</h3>
+        <p>${txtAlamat}</p>
+      </div>
+    </div>
+
+    <div class="doc-title">
+      <h1>${title}</h1>
+      <p>${subTitle}</p>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th width="5%">No</th>
+          <th width="15%">ID Siswa</th>
+          <th width="30%">Nama Lengkap</th>
+          <th width="10%">Kelas</th>
+          <th width="15%">Waktu Submit</th>
+          <th width="10%">Status</th>
+          <th width="10%">Nilai Akhir</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tableRows}
+      </tbody>
+    </table>
+
+    <div class="signature-section">
+       <div class="sig-box">
+          <p>Dicetak pada: ${today}</p>
+          <p>Mengetahui,<br>Kepala Sekolah / Panitia Ujian</p>
+          <div class="sig-space"></div>
+          <p class="sig-name">( ..................................... )</p>
+          <p>NIP. .....................................</p>
+       </div>
+    </div>
+  </body>
+  </html>
+  `;
+}
+
+/* ============================================================
+   FITUR LIHAT DETAIL JAWABAN SISWA
+   ============================================================ */
+
+
+/* ============================================================
+   FUNGSI: GET STUDENT ANSWER DETAIL (FINAL HYBRID VERSION)
+   Fitur:
+   1. Smart Matching (Anti-Spasi/Format Error)
+   2. Penilaian Parsial (PG Kompleks & Menjodohkan)
+   3. Auto-Fix Poin (Jika Benar tapi poin 0, dipaksa Full)
+   ============================================================ */
+function getStudentAnswerDetail(responseId) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const rSheet = ss.getSheetByName('Responses');
+    const qSheet = ss.getSheetByName('Questions');
+    const uSheet = ss.getSheetByName('Users');
+
+    // 1. Cari Data Response
+    const rData = rSheet.getDataRange().getValues();
+    const rRow = rData.find(row => String(row[0]) === String(responseId));
+
+    if (!rRow) return { success: false, message: 'Data respon tidak ditemukan.' };
+
+    const userID = rRow[1];
+    const examID = rRow[2];
+    const answersJson = rRow[3];
+    let finalScore = rRow[4]; // Nilai Akhir Database
+
+    // Parse JSON Jawaban Siswa
+    let studentAnswers = {};
+    try {
+      studentAnswers = JSON.parse(answersJson || '{}');
+    } catch (e) {
+      studentAnswers = {};
+    }
+
+    // 2. Ambil Nama Siswa (Langsung di sini agar tidak error function missing)
+    let studentName = 'Siswa';
+    if (uSheet) {
+        const uData = uSheet.getDataRange().getValues();
+        const uRow = uData.find(u => String(u[0]) === String(userID));
+        if (uRow) studentName = uRow[1];
+    }
+
+    // 3. Ambil Soal
+    const qData = qSheet.getDataRange().getValues();
+    // Filter soal berdasarkan ExamID (Row index mulai 1 karena header)
+    const examQuestions = qData.filter((row, i) => i > 0 && String(row[1]) === String(examID));
+
+    // --- HELPER: SMART MATCHING CLEANER ---
+    // Membersihkan string dari spasi, kutip, dan kurung kurawal untuk perbandingan fleksibel
+    function cleanStr(str) {
+        return String(str).replace(/[\s"'{}]/g, "").toLowerCase();
+    }
+
+    // PRE-KALKULASI: distribusi _manual_essay_score proporsional ke tiap soal Esai
+    // (konsisten dengan getStudentAnswerDetails untuk Excel)
+    const manualEssayTotal = (studentAnswers['_manual_essay_score'] !== undefined && studentAnswers['_manual_essay_score'] !== null)
+      ? parseFloat(studentAnswers['_manual_essay_score'])
+      : null;
+
+    let totalEssayWeight = 0;
+    examQuestions.forEach(row => {
+      if (row[2] === 'Esai') {
+        const w = (row[8] !== '' && !isNaN(parseFloat(row[8]))) ? parseFloat(row[8]) : 10;
+        totalEssayWeight += w;
+      }
+    });
+
+    // Helper: normalisasi ke Map untuk perbandingan JODOH/BS
+    function normalizeToMap(rawData) {
+      let mapData = {};
+      if (!rawData) return mapData;
+      let parsed = rawData;
+      if (typeof parsed === 'string') {
+        try { parsed = JSON.parse(parsed); } catch(e) { return {}; }
+      }
+      if (Array.isArray(parsed)) {
+        parsed.forEach(item => {
+          const k = cleanStr(String(item.q || item.question || item.key || ''));
+          const v = cleanStr(String(item.a || item.answer || item.value || ''));
+          if (k) mapData[k] = v;
+        });
+      } else if (typeof parsed === 'object') {
+        for (let k in parsed) {
+          mapData[cleanStr(k)] = cleanStr(String(parsed[k]));
+        }
+      }
+      return mapData;
+    }
+
+    const detail = [];
+
+    // 4. Loop Perhitungan Skor Per Item
+    examQuestions.forEach((row, index) => {
+      const qid      = row[0];
+      const type     = row[2];
+      const content  = row[3];
+      const image    = row[4];
+      const optionsRaw = row[5];
+      const keyRaw   = row[6];
+
+      // Ambil bobot. Default 10 jika kosong/invalid.
+      const weight = (row[8] !== '' && !isNaN(parseFloat(row[8])) && parseFloat(row[8]) > 0)
+        ? parseFloat(row[8]) : 10;
+
+      // Parse Opsi (untuk PG / PG_KOMPLEKS)
+      let options = [];
+      try { options = JSON.parse(optionsRaw); } catch (e) { options = []; }
+
+      // Ambil Jawaban Siswa & ekstrak format baru {answer, score}
+      let studAnsObj  = studentAnswers[qid];
+      let rawAnswerVal = studAnsObj;
+      if (studAnsObj && typeof studAnsObj === 'object' && !Array.isArray(studAnsObj) && studAnsObj.hasOwnProperty('answer')) {
+        rawAnswerVal = studAnsObj.answer;
+      }
+
+      let isCorrect = false;
+      let pointItem = 0;
+
+      // ============================================================
+      // LOGIKA PENILAIAN PER TIPE SOAL
+      // ============================================================
+
+      // --- TIPE 1: ESAI ---
+      // Nilai dari _manual_essay_score didistribusikan proporsional per bobot soal
+      if (type === 'Esai') {
+        if (manualEssayTotal !== null && totalEssayWeight > 0) {
+          pointItem  = (weight / totalEssayWeight) * manualEssayTotal;
+          isCorrect  = pointItem > 0;
+        } else {
+          pointItem  = 0;
+          isCorrect  = false; // belum dikoreksi
+        }
+      }
+
+      // --- TIPE 2: PG KOMPLEKS (Partial Credit) ---
+      else if (type === 'PG_KOMPLEKS') {
+        let keyArr = [], ansArr = [];
+        try { keyArr = JSON.parse(keyRaw); }
+        catch (e) { keyArr = String(keyRaw || '').split(',').map(s => s.trim()).filter(s => s); }
+        if (Array.isArray(rawAnswerVal)) ansArr = rawAnswerVal;
+        else { try { ansArr = JSON.parse(rawAnswerVal); } catch(e) { ansArr = String(rawAnswerVal || '').split(',').map(s => s.trim()).filter(s => s); } }
+
+        // Konversi kunci huruf (A,B,C) → teks opsi
+        const mapHuruf = ['A', 'B', 'C', 'D', 'E'];
+        const kNorm = keyArr.map(k => {
+          const cleanK = String(k).trim().toUpperCase();
+          const idx = mapHuruf.indexOf(cleanK);
+          return (idx !== -1 && options[idx]) ? String(options[idx]).trim().toLowerCase() : cleanK.toLowerCase();
+        });
+        const aNorm = ansArr.map(a => String(a).trim().toLowerCase());
+
+        let matchCount = 0, wrongCount = 0;
+        aNorm.forEach(a => kNorm.includes(a) ? matchCount++ : wrongCount++);
+
+        if (wrongCount > 0) {
+          pointItem = 0; isCorrect = false;
+        } else if (matchCount > 0) {
+          pointItem = (matchCount / kNorm.length) * weight;
+          isCorrect = true;
+        }
+      }
+
+      // --- TIPE 3: BS & JODOH (Partial Credit, Map vs Map) ---
+      else if (type === 'BS' || type === 'JODOH' || type === 'MATCHING') {
+        // Untuk JODOH: kunci disimpan sebagai [{q, a}], jawaban siswa sebagai {"q_text": "a_text"}
+        // Untuk BS: kunci sebagai {"0":"Benar","1":"Salah"}, jawaban siswa sebagai {"0":"Benar"}
+
+        if (type === 'JODOH' || type === 'MATCHING') {
+          // Pairs ada di Options (row[5]). Key (row[6]) biasanya berisi 'Auto-Check'
+          // Coba keyRaw dulu, fallback ke optionsRaw
+          let pairs = [];
+          try {
+            const parsed = JSON.parse(keyRaw);
+            if (Array.isArray(parsed)) pairs = parsed;
+          } catch(e) { /* keyRaw bukan JSON valid (misal 'Auto-Check') */ }
+
+          if (pairs.length === 0 && optionsRaw) {
+            try {
+              const parsed = JSON.parse(optionsRaw);
+              if (Array.isArray(parsed)) pairs = parsed;
+            } catch(e) {}
+          }
+
+          // Parse jawaban siswa — bisa object {"Jepang":"Tokyo"} atau string JSON
+          let stuObj = {};
+          if (rawAnswerVal && typeof rawAnswerVal === 'object' && !Array.isArray(rawAnswerVal)) {
+            stuObj = rawAnswerVal;
+          } else if (typeof rawAnswerVal === 'string') {
+            try { stuObj = JSON.parse(rawAnswerVal); } catch(e) {}
+          }
+
+          // Bandingkan langsung pair per pair
+          if (pairs.length > 0) {
+            let matchCount = 0;
+            pairs.forEach(pair => {
+              const kQ = String(pair.q || '').trim();
+              const kA = String(pair.a || '').trim().toLowerCase();
+              const sA = String(stuObj[kQ] || '').trim().toLowerCase();
+              if (kA !== '' && kA === sA) matchCount++;
+            });
+            pointItem = (matchCount / pairs.length) * weight;
+            isCorrect = pointItem > 0;
+          }
+
+        } else {
+          // BS: bandingkan key per key
+          let keyMap = normalizeToMap(keyRaw);
+          const stuMap = normalizeToMap(rawAnswerVal);
+          const totalItems = Object.keys(keyMap).length;
+          if (totalItems > 0) {
+            let matchCount = 0;
+            for (let k in keyMap) {
+              if (stuMap[k] === keyMap[k]) matchCount++;
+            }
+            pointItem = (matchCount / totalItems) * weight;
+            isCorrect = pointItem > 0;
+          }
+        }
+      }
+
+      // --- TIPE 4: PILIHAN GANDA (PG) ---
+      else if (type === 'PG') {
+        const cleanUserAns = String(rawAnswerVal || '').trim().toLowerCase();
+        const cleanKey     = String(keyRaw || '').trim();
+        const mapHuruf     = ['A', 'B', 'C', 'D', 'E'];
+        const keyIndex     = mapHuruf.indexOf(cleanKey.toUpperCase());
+
+        if (keyIndex !== -1 && options[keyIndex]) {
+          const correctText = String(options[keyIndex]).trim().toLowerCase();
+          if (cleanUserAns === correctText && correctText !== '') isCorrect = true;
+        } else {
+          if (cleanUserAns === cleanKey.toLowerCase()) isCorrect = true;
+        }
+        if (isCorrect) pointItem = weight;
+      }
+
+      // --- FORMAT TAMPILAN JAWABAN ---
+      let displayAnswer = '';
+      let rawStudentAnsForFrontend = rawAnswerVal; // kirim asli untuk JODOH/BS
+
+      if (!studAnsObj || rawAnswerVal === undefined || rawAnswerVal === null || rawAnswerVal === '') {
+        displayAnswer = '(Tidak Dijawab)';
+        rawStudentAnsForFrontend = null;
+      } else if (Array.isArray(rawAnswerVal)) {
+        displayAnswer = rawAnswerVal.join(', ');
+      } else if ((type === 'JODOH' || type === 'MATCHING') && typeof rawAnswerVal === 'object') {
+        // Untuk JODOH: tampilkan sebagai "A → B | C → D" tapi kirim juga raw object
+        try { displayAnswer = Object.entries(rawAnswerVal).map(([k, v]) => `${k} → ${v}`).join(' | '); }
+        catch(e) { displayAnswer = JSON.stringify(rawAnswerVal); }
+      } else if (type === 'BS' && typeof rawAnswerVal === 'object') {
+        try { displayAnswer = Object.entries(rawAnswerVal).map(([k, v]) => `${k}: ${v}`).join(' | '); }
+        catch(e) { displayAnswer = JSON.stringify(rawAnswerVal); }
+      } else if (typeof rawAnswerVal === 'object') {
+        displayAnswer = JSON.stringify(rawAnswerVal);
+      } else {
+        displayAnswer = String(rawAnswerVal);
+        // Untuk JODOH/BS yang masih berupa JSON string, parse ke object
+        if ((type === 'JODOH' || type === 'MATCHING' || type === 'BS') && String(rawAnswerVal).trim().startsWith('{')) {
+          try { rawStudentAnsForFrontend = JSON.parse(rawAnswerVal); } catch(e) {}
+        }
+      }
+
+      // Siapkan pairs untuk JODOH (diambil dari Options karena key = 'Auto-Check')
+      let jodohPairs = null;
+      if (type === 'JODOH' || type === 'MATCHING') {
+        jodohPairs = [];
+        try {
+          const p = JSON.parse(keyRaw);
+          if (Array.isArray(p) && p.length > 0) jodohPairs = p;
+        } catch(e) {}
+        if (jodohPairs.length === 0) {
+          try {
+            const p = JSON.parse(optionsRaw);
+            if (Array.isArray(p)) jodohPairs = p;
+          } catch(e) {}
+        }
+      }
+
+      detail.push({
+        id:             qid,
+        number:         index + 1,
+        q:              content,
+        type:           type,
+        studentAns:     displayAnswer,
+        rawStudentAns:  rawStudentAnsForFrontend,
+        key:            keyRaw,
+        pairs:          jodohPairs,
+        isCorrect:      isCorrect,
+        image:          image,
+        point:          Number(pointItem.toFixed(2)),
+        maxPoint:       weight
+      });
+    });
+
+    // Handle Final Score Kosong
+    if (finalScore === "" || finalScore === undefined || finalScore === null) {
+      finalScore = 0;
+    }
+
+    return { 
+        success: true, 
+        data: detail, 
+        name: studentName, 
+        finalScore: finalScore 
+    };
+
+  } catch (e) {
+    Logger.log("Error getStudentAnswerDetail: " + e.message);
+    return { success: false, message: "Terjadi kesalahan server: " + e.message };
+  }
+}
+
+
+
+/* -----------------------------------------------------------
+   FUNGSI TAMBAHAN: DOWNLOAD DETAIL JAWABAN SISWA (EXCEL)
+   ----------------------------------------------------------- */
+function getStudentAnswerDetails(responseId) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // 1. AMBIL DATA RESPON
+    const rSheet = ss.getSheetByName('Responses');
+    const rData = rSheet.getDataRange().getValues();
+    const respRow = rData.find(row => String(row[0]) === String(responseId));
+
+    if (!respRow) return { success: false, message: 'Data respon tidak ditemukan.' };
+    
+    const userId = respRow[1];      
+    const examId = respRow[2];      
+    const answersJson = respRow[3]; 
+    const savedScore = respRow[4];  
+
+    // Parsing Jawaban Siswa
+    let studentAnswers = {};
+    try { 
+      studentAnswers = JSON.parse(answersJson);
+    } catch (e) { 
+      studentAnswers = {}; 
+    }
+
+    // 2. DATA EXAM & USER
+    const exSheet = ss.getSheetByName('Exams');
+    const exData = exSheet.getDataRange().getValues();
+    const exRow = exData.find(row => String(row[0]) === String(examId));
+    const subjectName = exRow ? exRow[1] : 'Ujian';
+    
+    const uSheet = ss.getSheetByName('Users');
+    const uData = uSheet.getDataRange().getValues();
+    const uRow = uData.find(r => String(r[0]) === String(userId));
+    const studentName = uRow ? uRow[1] : 'Siswa';
+    const studentIdDisplay = userId; 
+
+    // 3. DATA SOAL
+    const qSheet = ss.getSheetByName('Questions');
+    const qData = qSheet.getDataRange().getValues();
+    const questions = qData.filter((row, i) => i > 0 && String(row[1]) === String(examId));
+    
+    if (questions.length === 0) return { success: false, message: 'Soal tidak ditemukan.' };
+
+    // --- HELPER BERSIH-BERSIH TEXT ---
+    function cleanStr(str) {
+       // Hapus spasi, kutip, kurung, dan lowercase semua
+       return String(str).replace(/[\s"'{}]/g, "").toLowerCase().trim();
+    }
+    
+    function cleanTextForExcel(text) {
+      if (!text) return "";
+      if (typeof text !== 'string') return text;
+      return String(text).replace(/<[^>]*>/g, " ").trim();
+    }
+
+    // --- HELPER BARU: NORMALISASI KE MAP (PETA) ---
+    // Mengubah Array/Object menjadi format standar { "pertanyaan_bersih": "jawaban_bersih" }
+    function normalizeToMap(rawData) {
+        let mapData = {};
+        if (!rawData) return mapData;
+
+        let parsed = rawData;
+        if (typeof parsed === 'string') {
+            try { parsed = JSON.parse(parsed); } catch(e) { return {}; }
+        }
+
+        if (Array.isArray(parsed)) {
+            // KASUS ARRAY: [{q: 'Jawa', a: 'Surabaya'}, ...]
+            parsed.forEach(item => {
+                const qKey = item.q || item.question || item.key || ""; 
+                const aVal = item.a || item.answer || item.value || "";
+                if (qKey) mapData[cleanStr(qKey)] = cleanStr(aVal);
+            });
+        } else if (typeof parsed === 'object') {
+            // KASUS OBJECT: {"Jawa": "Surabaya"}
+            for (let k in parsed) {
+                mapData[cleanStr(k)] = cleanStr(parsed[k]);
+            }
+        }
+        return mapData;
+    }
+
+    // 4. PRE-KALKULASI: Hitung total bobot semua soal Esai
+    //    Ini digunakan untuk distribusi proporsional _manual_essay_score ke tiap soal esai
+    const manualEssayScoreRaw = (studentAnswers['_manual_essay_score'] !== undefined && studentAnswers['_manual_essay_score'] !== null)
+      ? parseFloat(studentAnswers['_manual_essay_score'])
+      : null;
+
+    let totalEssayWeight = 0;
+    questions.forEach(q => {
+      if (q[2] === 'Esai') {
+        const w = (q.length > 8 && q[8] !== "" && !isNaN(q[8])) ? Number(q[8]) : 10;
+        totalEssayWeight += w;
+      }
+    });
+
+    // 5. PROSES PENILAIAN PER SOAL
+    const details = questions.map((q, index) => {
+      const qId = q[0];            
+      const qType = q[2];          
+      const qBody = q[3];          
+      const qOptionsRaw = q[5];    
+      let qKeyRaw = q[6];        
+      
+      let qWeight = 10;
+      if (q.length > 8 && q[8] !== "" && !isNaN(q[8])) qWeight = Number(q[8]);
+
+      // [AUTO-FIX] Kunci Jodoh Kosong -> Ambil dari Options
+      if ((qType === 'JODOH' || qType === 'MATCHING') && (!qKeyRaw || qKeyRaw === '' || qKeyRaw === '""')) {
+          if (qOptionsRaw && qOptionsRaw !== '') qKeyRaw = qOptionsRaw; 
+      }
+
+      let sAnsRaw = studentAnswers[qId];
+      let pointEarned = 0;
+      let finalStudentAns = ""; 
+      let manualScore = null;   
+
+      // Handling Format Baru {answer, score}
+      if (sAnsRaw && typeof sAnsRaw === 'object' && !Array.isArray(sAnsRaw) && sAnsRaw.hasOwnProperty('answer')) {
+          finalStudentAns = sAnsRaw.answer;
+          if (sAnsRaw.hasOwnProperty('score') && qType !== 'Esai') {
+             // Untuk non-esai: gunakan score dari format baru sebagai acuan awal
+             // tapi tetap hitung ulang di bawah (manualScore = null)
+             manualScore = null;
+          }
+      } else {
+          finalStudentAns = sAnsRaw;
+      }
+
+      // Untuk soal ESAI: distribusikan _manual_essay_score secara proporsional per bobot soal
+      if (qType === 'Esai') {
+          if (manualEssayScoreRaw !== null && totalEssayWeight > 0) {
+              // Distribusi proporsional: poin soal ini = (bobot soal / total bobot esai) * total poin esai guru
+              pointEarned = (qWeight / totalEssayWeight) * manualEssayScoreRaw;
+              manualScore = pointEarned; // tandai sebagai sudah dinilai
+          } else {
+              pointEarned = 0;
+              manualScore = null; // belum dikoreksi
+          }
+      }
+
+      // Hitung Ulang Score (Jika manualScore null)
+      if (manualScore === null) {
+      if (qType === 'PG_KOMPLEKS') {
+          let keyArr = [], ansArr = [], qOptionsArr = [];
+          try { keyArr = JSON.parse(qKeyRaw); } catch(e) { keyArr = String(qKeyRaw).split(',').map(s => s.trim()); }
+          try { qOptionsArr = JSON.parse(qOptionsRaw); } catch(e) { qOptionsArr = []; }
+          if (Array.isArray(finalStudentAns)) ansArr = finalStudentAns;
+          else try { ansArr = JSON.parse(finalStudentAns); } catch(e) { ansArr = []; }
+
+          // [FIX] Konversi kunci huruf (A,B,C) ke teks opsi
+          const mapHuruf2 = ['A', 'B', 'C', 'D', 'E'];
+          const kNorm = keyArr.map(k => {
+              const cleanK = String(k).trim().toUpperCase();
+              const idx = mapHuruf2.indexOf(cleanK);
+              if (idx !== -1 && qOptionsArr[idx]) {
+                  return String(qOptionsArr[idx]).trim().toLowerCase();
+              }
+              return cleanK.toLowerCase();
+          });
+          const aNorm = ansArr.map(a => String(a).trim().toLowerCase());
+
+          if (aNorm.length > 0) {
+              let match = 0, wrong = 0;
+              aNorm.forEach(a => kNorm.includes(a) ? match++ : wrong++);
+              if (wrong > 0) pointEarned = 0;
+              else if (match > 0) pointEarned = (match / kNorm.length) * qWeight;
+          }
+      }
+          
+          // ========================================================
+          // --- [FIXED] LOGIKA JODOH / BS (MAP vs MAP) ---
+          // ========================================================
+          else if (['JODOH', 'BS', 'MATCHING'].includes(qType)) {
+             // 1. Normalisasi KUNCI ke Map
+             let keyMap = normalizeToMap(qKeyRaw);
+
+             // 2. Normalisasi JAWABAN SISWA ke Map
+             let studentMap = normalizeToMap(finalStudentAns);
+
+             // 3. Bandingkan Map vs Map
+             let totalItems = Object.keys(keyMap).length;
+             let matchCount = 0;
+             
+             if (totalItems > 0) {
+                for (let qKey in keyMap) {
+                   const expectedAns = keyMap[qKey];
+                   const studentAns = studentMap[qKey]; // Cari jawaban siswa untuk pertanyaan ini
+                   
+                   // Cek Kecocokan
+                   if (studentAns === expectedAns) {
+                       matchCount++;
+                   }
+                }
+                pointEarned = (matchCount / totalItems) * qWeight;
+             }
+          }
+          // ========================================================
+
+          else if (qType === 'PG') {
+             const sClean = String(finalStudentAns || '').trim().toLowerCase();
+             const kClean = String(qKeyRaw || '').trim(); 
+             
+             let isMatch = false;
+             if (sClean === kClean.toLowerCase()) isMatch = true;
+             
+             if (!isMatch) {
+                const mapHuruf = ['A','B','C','D','E'];
+                const idx = mapHuruf.indexOf(kClean.toUpperCase());
+                if (idx !== -1) {
+                   try {
+                      const opts = JSON.parse(qOptionsRaw);
+                      if (opts[idx] && String(opts[idx]).toLowerCase().trim() === sClean) isMatch = true;
+                   } catch(e){}
+                }
+             }
+             if (isMatch) pointEarned = qWeight;
+          }
+      }
+
+      // Status Text & Formatting Display
+      let statusText = "SALAH";
+      if (qType === 'Esai') {
+          if (manualScore !== null) {
+              statusText = `DINILAI (${Number(pointEarned.toFixed(2))})`;
+          } else {
+              statusText = "MENUNGGU KOREKSI";
+          }
+      }
+      else {
+          const diff = Math.abs(pointEarned - qWeight);
+          if (diff < 0.01) statusText = "BENAR";
+          else if (pointEarned > 0.01) statusText = "BENAR SEBAGIAN";
+      }
+
+      let displayAnswer = finalStudentAns;
+      let displayKey = qKeyRaw;
+
+      // Konversi A/B/C untuk PG
+      if (['PG', 'PG_KOMPLEKS'].includes(qType)) {
+          let optionsArr = [];
+          try { optionsArr = JSON.parse(qOptionsRaw); } catch(e) {}
+          if (optionsArr && Array.isArray(optionsArr) && optionsArr.length > 0) {
+             const mapHuruf = ['A', 'B', 'C', 'D', 'E'];
+             const getLabel = (val) => {
+                 if (!val) return "";
+                 const vClean = cleanStr(val);
+                 if (vClean.length === 1 && mapHuruf.includes(vClean.toUpperCase())) return vClean.toUpperCase();
+                 const idx = optionsArr.findIndex(opt => cleanStr(opt) === vClean);
+                 if (idx !== -1) return mapHuruf[idx];
+                 return val;
+             };
+             if (Array.isArray(finalStudentAns)) displayAnswer = finalStudentAns.map(getLabel);
+             else {
+                 try {
+                    const parsed = JSON.parse(finalStudentAns);
+                    if (Array.isArray(parsed)) displayAnswer = parsed.map(getLabel);
+                    else displayAnswer = getLabel(finalStudentAns);
+                 } catch(e) { displayAnswer = getLabel(finalStudentAns); }
+             }
+             try {
+                 const parsedKey = JSON.parse(qKeyRaw);
+                 if (Array.isArray(parsedKey)) displayKey = parsedKey.map(getLabel);
+                 else displayKey = getLabel(qKeyRaw);
+             } catch(e) {
+                 if (qType === 'PG_KOMPLEKS' && String(qKeyRaw).includes(',')) displayKey = String(qKeyRaw).split(',').map(s => getLabel(s.trim())).join(', ');
+                 else displayKey = getLabel(qKeyRaw);
+             }
+          }
+      }
+
+      return {
+        no: index + 1,
+        id: qId,
+        type: qType,
+        question: cleanTextForExcel(qBody),
+        answer: displayAnswer,
+        key: displayKey,
+        status: statusText,
+        point: Number(pointEarned.toFixed(2)),
+        weight: Number(qWeight)
+      };
+    });
+
+    // Ambil nilai esai manual yang tersimpan di JSON jawaban
+    const manualEssayScore = (studentAnswers['_manual_essay_score'] !== undefined && studentAnswers['_manual_essay_score'] !== null)
+      ? parseFloat(studentAnswers['_manual_essay_score'])
+      : null;
+
+    return {
+      success: true,
+      data: details,
+      examSubject: subjectName,
+      studentName: studentName,
+      studentId: studentIdDisplay,
+      finalScore: savedScore,
+      manualEssayScore: manualEssayScore // Poin koreksi esai oleh guru
+    };
+
+  } catch (e) {
+    return { success: false, message: 'Error: ' + e.toString() };
+  }
+}
+
+
+
+/* --------------------------------------------------------------------------
+   HELPER 1: PEMBERSIH TEKS (CLEANER)
+   -------------------------------------------------------------------------- */
+function cleanTextForExcel(input) {
+  if (input === undefined || input === null || input === '') return "-";
+
+  let processed = input;
+  // Coba parse JSON string
+  if (typeof input === 'string' && (input.trim().startsWith('{') || input.trim().startsWith('['))) {
+    try { processed = JSON.parse(input); } catch (e) {}
+  }
+
+  // Handle Object/Array
+  if (typeof processed === 'object') {
+    if (Array.isArray(processed)) {
+      return processed.map(item => cleanHtmlTags(item)).join(', ');
+    } else {
+      let parts = [];
+      for (const [key, value] of Object.entries(processed)) {
+        parts.push(`${cleanHtmlTags(key)} -> ${cleanHtmlTags(value)}`);
+      }
+      return parts.join(' | ');
+    }
+  }
+  return cleanHtmlTags(processed);
+}
+
+function cleanHtmlTags(str) {
+  if (!str) return "";
+  let text = String(str);
+  text = text.replace(/<img[^>]*>/gi, ""); // Hapus gambar
+  text = text.replace(/<[^>]*>/g, " ");    // Hapus tag HTML
+  return text.replace(/\s+/g, " ").trim(); // Rapikan spasi
+}
+
+/* --------------------------------------------------------------------------
+   HELPER 2: LOGIKA PENILAIAN HYBRID (XXX -> HURUF -> TEKS)
+   -------------------------------------------------------------------------- */
+function checkAnswerLogic(type, studentAns, keyAns, optionsRaw) {
+  // Cek Null
+  if (studentAns === undefined || studentAns === null || studentAns === '') return false;
+  if (keyAns === undefined || keyAns === null) return false;
+
+  const clean = (str) => String(str).replace(/<[^>]*>/g, '').replace(/\s+/g, '').trim().toLowerCase();
+  
+  const sClean = clean(studentAns);
+  const kClean = clean(keyAns);
+
+  // --- LOGIKA KHUSUS PILIHAN GANDA (PG) ---
+  // Menangani kasus: Siswa="25", Kunci="C"
+  if (type === 'PG') {
+      // 1. Cek Match Langsung (Huruf vs Huruf ATAU Teks vs Teks)
+      if (sClean === kClean) return true;
+
+      // 2. Cek Silang menggunakan Array Opsi
+      if (optionsRaw) {
+          let opts = [];
+          try { opts = JSON.parse(optionsRaw); } catch(e) { opts = []; }
+          
+          const mapHuruf = ['a', 'b', 'c', 'd', 'e'];
+          
+          // SKENARIO A: Kunci adalah Huruf (misal 'c'), Siswa adalah Teks (misal '25')
+          const keyIndex = mapHuruf.indexOf(kClean); // Cari index 'c' -> 2
+          if (keyIndex !== -1 && opts[keyIndex]) {
+              const textFromKey = clean(opts[keyIndex]); // Ambil teks di index 2 -> "25"
+              if (sClean === textFromKey) return true;   // Bandingkan "25" === "25" -> BENAR!
+          }
+
+          // SKENARIO B: Kunci adalah Teks (misal '25'), Siswa adalah Huruf (misal 'c')
+          // (Jarang terjadi, tapi untuk jaga-jaga)
+          const studentIndex = mapHuruf.indexOf(sClean);
+          if (studentIndex !== -1 && opts[studentIndex]) {
+               const textFromStudent = clean(opts[studentIndex]);
+               if (textFromStudent === kClean) return true;
+          }
+      }
+  }
+
+  // --- LOGIKA MENJODOHKAN ---
+  else if (type === 'JODOH' || type === 'MATCHING') {
+    try {
+      const sObj = (typeof studentAns === 'string') ? JSON.parse(studentAns) : studentAns;
+      let kObj = (typeof keyAns === 'string') ? JSON.parse(keyAns) : keyAns;
+      
+      let keyMap = {};
+      // Normalisasi Kunci
+      if (Array.isArray(kObj)) {
+        kObj.forEach(item => { if(item.q) keyMap[clean(item.q)] = clean(item.a); });
+      } else {
+        Object.keys(kObj).forEach(k => { keyMap[clean(k)] = clean(kObj[k]); });
+      }
+
+      const sKeys = Object.keys(sObj);
+      if (sKeys.length === 0) return false; 
+
+      let correctCount = 0;
+      let totalKey = Object.keys(keyMap).length;
+
+      sKeys.forEach(qSiswa => {
+        const aSiswa = clean(sObj[qSiswa]);
+        const aKunci = keyMap[clean(qSiswa)];
+        if (aKunci && aSiswa === aKunci) correctCount++;
+      });
+      return (correctCount > 0 && correctCount === totalKey);
+    } catch (e) { return false; }
+  }
+
+  // --- LOGIKA PG KOMPLEKS / BS ---
+  else if (type === 'PG_KOMPLEKS' || type === 'BS') {
+    try {
+      const sArr = Array.isArray(studentAns) ? studentAns : JSON.parse(studentAns);
+      const kArr = Array.isArray(keyAns) ? keyAns : JSON.parse(keyAns);
+      
+      const sStr = sArr.map(clean).sort().join('|');
+      const kStr = kArr.map(clean).sort().join('|');
+
+      return sStr === kStr;
+    } catch (e) { return false; }
+  }
+
+  // Fallback (Isian / Lainnya)
+  return sClean === kClean;
+}
+
+/* --------------------------------------------------------------------------
+   HELPER 2: FORMATTER TAMPILAN (UNTUK EXCEL/HTML)
+   Mengubah JSON Object menjadi String yang mudah dibaca
+   -------------------------------------------------------------------------- */
+function formatForDisplay(type, rawData) {
+  if (!rawData) return "-";
+
+  // Jika Tipe JODOH, kita ingin output: "Ibukota -> Jakarta, Negara -> Indonesia"
+  if ((type === 'JODOH' || type === 'MATCHING')) {
+    try {
+      const obj = (typeof rawData === 'string') ? JSON.parse(rawData) : rawData;
+      
+      // Handle jika formatnya Array of Object (biasanya di kunci bank soal)
+      if (Array.isArray(obj)) {
+        return obj.map(item => `${item.q} -> ${item.a}`).join('\n');
+      } 
+      // Handle jika formatnya Object biasa (jawaban siswa)
+      else if (typeof obj === 'object') {
+        return Object.entries(obj).map(([k, v]) => `${k} -> ${v}`).join('\n');
+      }
+    } catch (e) { return String(rawData); }
+  }
+
+  // Jika Array (PG Kompleks), gabung pakai koma
+  if (Array.isArray(rawData)) {
+    return rawData.join(', ');
+  }
+
+  // Jika String JSON (PG Kompleks tersimpan sbg string)
+  if (typeof rawData === 'string' && (rawData.startsWith('[') || rawData.startsWith('{'))) {
+    try {
+      const parsed = JSON.parse(rawData);
+      if (Array.isArray(parsed)) return parsed.join(', ');
+      // Jika object lain
+      return JSON.stringify(parsed);
+    } catch (e) {}
+  }
+
+  // Default: String biasa, bersihkan HTML
+  return String(rawData).replace(/<[^>]*>/g, '').trim();
+}
+/* ============================================================
+/* --- GANTI FUNGSI generateStudentDetailPDF DI CODE.GS --- */
+/**
+ * Fungsi untuk menghasilkan PDF detail jawaban siswa (LJK)
+ * Termasuk perbaikan logika Poin 0 -> 1 dan format Menjodohkan.
+ */
+/**
+ * Fungsi Lengkap Generate PDF LJK Siswa
+ * Perbaikan: Memaksa Poin = 1 jika database kosong/nol pada jawaban benar.
+ */
+/**
+ * Fungsi Generate PDF LJK - FINAL FIX
+ * Perbaikan:
+ * 1. Logika 'Smart Matching' agar soal Menjodohkan tidak dianggap SALAH karena beda spasi/format.
+ * 2. Memaksa Poin muncul jika jawaban BENAR.
+ */
+/* -----------------------------------------------------------
+   FUNGSI GENERATE PDF (SAVE TO DRIVE + SMART LOGIC FIX)
+   ----------------------------------------------------------- */
+function generateStudentDetailPDF(responseId) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // --- 1. AMBIL DATA DARI DATABASE ---
+    const rSheet = ss.getSheetByName('Responses');
+    const rData = rSheet.getDataRange().getValues();
+    const respRow = rData.find(r => String(r[0]) === String(responseId));
+    if (!respRow) return { success: false, message: 'Data respon tidak ditemukan.' };
+
+    const userId = respRow[1];
+    const examId = respRow[2];
+    const answersJson = respRow[3];
+    
+    const uSheet = ss.getSheetByName('Users');
+    const uData = uSheet.getDataRange().getValues();
+    const uRow = uData.find(r => String(r[0]) === String(userId));
+    const studentName = uRow ? uRow[1] : userId;
+
+    const exSheet = ss.getSheetByName('Exams');
+    const exData = exSheet.getDataRange().getValues();
+    const exRow = exData.find(r => String(r[0]) === String(examId));
+    const examName = exRow ? exRow[1] : examId;
+
+    const qSheet = ss.getSheetByName('Questions');
+    const qData = qSheet.getDataRange().getValues();
+    const questions = qData.filter((r, i) => i > 0 && String(r[1]) === String(examId));
+
+    let studentAnswers = {};
+    try { studentAnswers = JSON.parse(answersJson); } catch (e) {}
+
+    // --- 2. HELPER FUNCTIONS ---
+
+    function cleanStr(str) {
+       return String(str).replace(/[\s"'{}]/g, "").toLowerCase().trim();
+    }
+
+    function normalizeToMap(rawData) {
+        let mapData = {};
+        if (!rawData) return mapData;
+        let parsed = rawData;
+        if (typeof parsed === 'string') {
+            try { parsed = JSON.parse(parsed); } catch(e) { return {}; }
+        }
+        if (Array.isArray(parsed)) {
+            parsed.forEach(item => {
+                const qKey = item.q || item.question || item.key || ""; 
+                const aVal = item.a || item.answer || item.value || "";
+                if (qKey) mapData[cleanStr(qKey)] = cleanStr(aVal);
+            });
+        } else if (typeof parsed === 'object') {
+            for (let k in parsed) mapData[cleanStr(k)] = cleanStr(parsed[k]);
+        }
+        return mapData;
+    }
+
+    // [BARU] Konversi kunci huruf A/B/C/D/E ke teks opsi yang sebenarnya
+    // Ini adalah kunci utama perbaikan PG_KOMPLEKS
+    function convertKeyLettersToText(keyArr, optionsArr) {
+        const mapHuruf = ['A', 'B', 'C', 'D', 'E'];
+        return keyArr.map(k => {
+            const cleanK = String(k).trim().toUpperCase();
+            const idx = mapHuruf.indexOf(cleanK);
+            // Jika kunci adalah huruf (A,B,C) dan opsi tersedia → ambil teks opsinya
+            if (idx !== -1 && optionsArr && optionsArr[idx]) {
+                return String(optionsArr[idx]).trim().toLowerCase();
+            }
+            // Jika sudah berupa teks langsung → gunakan apa adanya (lowercase)
+            return cleanK.toLowerCase();
+        });
+    }
+
+    function formatMatchingToHTML(jsonRaw) {
+        let displayObj = {};
+        try {
+             let parsed = typeof jsonRaw === 'string' ? JSON.parse(jsonRaw) : jsonRaw;
+             if (Array.isArray(parsed)) {
+                 parsed.forEach(p => displayObj[p.q||p.question] = p.a||p.answer);
+             } else {
+                 displayObj = parsed;
+             }
+        } catch(e) { return String(jsonRaw || '-'); }
+
+        if (!displayObj || Object.keys(displayObj).length === 0) return '-';
+
+        let listHtml = '<ul style="margin: 0; padding-left: 15px; list-style-type: disc;">';
+        for (const [premis, jawaban] of Object.entries(displayObj)) {
+             listHtml += `<li style="margin-bottom:2px;">${premis} <span style="color:#94a3b8; font-weight:bold;">&rarr;</span> <b>${jawaban}</b></li>`;
+        }
+        listHtml += '</ul>';
+        return listHtml;
+    }
+
+    function getBase64Image(url) {
+        try {
+            if (!url) return null;
+            const response = UrlFetchApp.fetch(url);
+            const blob = response.getBlob();
+            return "data:" + blob.getContentType() + ";base64," + Utilities.base64Encode(blob.getBytes());
+        } catch (e) { return null; }
+    }
+
+    // --- 3. LOOP DATA & HITUNG SKOR ---
+    let totalScore = 0;
+    let maxPoints = 0;
+    let contentHtml = '';
+
+    questions.forEach((q, idx) => {
+       const qId      = q[0];
+       const qType    = q[2];
+       const qBody    = q[3];
+       const qImage   = q[4]; 
+       const qOptionsRaw = q[5];
+       let   qKeyRaw  = q[6];
+       
+       let qWeight = 10;
+       if (q.length > 8 && q[8] !== "" && !isNaN(q[8])) qWeight = Number(q[8]);
+       maxPoints += qWeight;
+
+       // Auto-Fix: Kunci Jodoh Kosong → Ambil dari Options
+       if ((qType === 'JODOH' || qType === 'MATCHING') && (!qKeyRaw || qKeyRaw === '')) {
+           if (qOptionsRaw) qKeyRaw = qOptionsRaw; 
+       }
+
+       let sAnsRaw = studentAnswers[qId];
+       let pointEarned = 0;
+       let finalStudentAns = sAnsRaw;
+       let manualScore = null;
+
+       // Deteksi format jawaban baru {answer:..., score:...}
+       if (sAnsRaw && typeof sAnsRaw === 'object' && !Array.isArray(sAnsRaw) && sAnsRaw.hasOwnProperty('answer')) {
+          finalStudentAns = sAnsRaw.answer;
+          if (sAnsRaw.hasOwnProperty('score')) {
+             if (qType === 'Esai') manualScore = Number(sAnsRaw.score);
+          }
+       }
+
+       // ============================================================
+       // LOGIKA PENILAIAN PER TIPE SOAL
+       // ============================================================
+       if (manualScore !== null) {
+           pointEarned = manualScore;
+
+       // ---- A. PG KOMPLEKS [FIXED] ----
+       } else if (qType === 'PG_KOMPLEKS') {
+           let keyArr = [], ansArr = [], optionsArr = [];
+
+           // Parse kunci jawaban (biasanya ["A","C"])
+           try { keyArr = JSON.parse(qKeyRaw); } 
+           catch(e) { keyArr = String(qKeyRaw || '').split(',').map(s => s.trim()).filter(s => s); }
+
+           // Parse opsi-opsi soal (untuk konversi huruf → teks)
+           try { optionsArr = JSON.parse(qOptionsRaw); } 
+           catch(e) { optionsArr = []; }
+
+           // Parse jawaban siswa (biasanya array teks: ["Jawaban A","Jawaban C"])
+           if (Array.isArray(finalStudentAns)) {
+               ansArr = finalStudentAns;
+           } else {
+               try { ansArr = JSON.parse(finalStudentAns); }
+               catch(e) { ansArr = String(finalStudentAns || '').split(',').map(s => s.trim()).filter(s => s); }
+           }
+
+           // [FIX UTAMA] Konversi kunci huruf → teks opsi, lalu bandingkan
+           const kNorm = convertKeyLettersToText(keyArr, optionsArr);
+           const aNorm = ansArr.map(a => String(a).trim().toLowerCase());
+
+           if (aNorm.length > 0 && kNorm.length > 0) {
+               let match = 0, wrong = 0;
+               aNorm.forEach(ans => kNorm.includes(ans) ? match++ : wrong++);
+               if (wrong > 0)       pointEarned = 0;
+               else if (match > 0)  pointEarned = (match / kNorm.length) * qWeight;
+           }
+
+       // ---- B. BENAR/SALAH & MENJODOHKAN ----
+       } else if (['JODOH', 'BS', 'MATCHING'].includes(qType)) {
+           const keyMap = normalizeToMap(qKeyRaw);
+           const stuMap = normalizeToMap(finalStudentAns);
+           const totalItems = Object.keys(keyMap).length;
+           let matchCount = 0;
+           if (totalItems > 0) {
+               for (let k in keyMap) {
+                   if (stuMap[k] === keyMap[k]) matchCount++;
+               }
+               pointEarned = (matchCount / totalItems) * qWeight;
+           }
+
+       // ---- C. PILIHAN GANDA BIASA ----
+       } else if (qType === 'PG') {
+           const sClean = String(finalStudentAns || '').trim().toLowerCase();
+           const kClean = String(qKeyRaw || '').trim();
+           let isMatch = (sClean === kClean.toLowerCase());
+           if (!isMatch) {
+               const mapHuruf = ['A','B','C','D','E'];
+               const letterIdx = mapHuruf.indexOf(kClean.toUpperCase());
+               if (letterIdx !== -1) {
+                   try {
+                       const opts = JSON.parse(qOptionsRaw);
+                       if (opts[letterIdx] && String(opts[letterIdx]).toLowerCase().trim() === sClean) isMatch = true;
+                   } catch(e){}
+               }
+           }
+           if (isMatch) pointEarned = qWeight;
+       }
+       // ---- D. ESAI: tidak dinilai otomatis ----
+
+       totalScore += pointEarned;
+
+       // ============================================================
+       // STATUS & WARNA
+       // ============================================================
+       let statusText  = '[ SALAH ]';
+       let statusColor = '#b91c1c';
+       const diff = Math.abs(pointEarned - qWeight);
+       
+       if (qType === 'Esai') {
+           statusText  = manualScore !== null ? `[ ESAI: ${pointEarned} ]` : '[ MENUNGGU KOREKSI ]';
+           statusColor = '#7e22ce';
+       } else if (diff < 0.01) {
+           statusText  = '[ BENAR ]';
+           statusColor = '#15803d';
+       } else if (pointEarned > 0.01) {
+           statusText  = '[ BENAR SEBAGIAN ]';
+           statusColor = '#d97706';
+       }
+
+       // ============================================================
+       // FORMAT TAMPILAN JAWABAN & KUNCI
+       // ============================================================
+       let imgHtml = '';
+       if (qImage) {
+           const b64 = getBase64Image(qImage);
+           if (b64) imgHtml = `<div style="margin:10px 0;"><img src="${b64}" style="max-height:150px; max-width:100%; border:1px solid #eee; padding:2px;"></div>`;
+       }
+
+       let displayStudent = '-';
+       let displayKey     = '-';
+
+       if (qType === 'PG_KOMPLEKS') {
+           // [FIX TAMPILAN] Tampilkan teks opsi, bukan huruf mentah
+           let keyArr2 = [], ansArr2 = [], optionsArr2 = [];
+           try { keyArr2    = JSON.parse(qKeyRaw); }    catch(e) { keyArr2 = []; }
+           try { optionsArr2 = JSON.parse(qOptionsRaw); } catch(e) { optionsArr2 = []; }
+           if (Array.isArray(finalStudentAns)) ansArr2 = finalStudentAns;
+           else try { ansArr2 = JSON.parse(finalStudentAns); } catch(e) { ansArr2 = []; }
+
+           // Kunci: konversi huruf → teks opsi untuk tampilan
+           const keyTexts = convertKeyLettersToText(keyArr2, optionsArr2);
+           displayKey     = keyTexts.length > 0 ? keyTexts.join(', ') : '-';
+
+           // Jawaban siswa: sudah berupa teks, tinggal join
+           displayStudent = ansArr2.length > 0 ? ansArr2.map(a => String(a)).join(', ') : '-';
+
+       } else if (['JODOH', 'MATCHING'].includes(qType)) {
+           displayStudent = formatMatchingToHTML(finalStudentAns);
+           displayKey     = formatMatchingToHTML(qKeyRaw);
+
+       } else if (qType === 'BS') {
+           // BS: key = {"0":"Benar","1":"Salah"}, options = ["pernyataan 1","pernyataan 2"]
+           let stmts = [];
+           try { stmts = JSON.parse(qOptionsRaw); } catch(e) {}
+           let keyObj = {};
+           try { keyObj = JSON.parse(qKeyRaw); } catch(e) {}
+           let ansObj = {};
+           if (typeof finalStudentAns === 'object' && finalStudentAns !== null) {
+               ansObj = finalStudentAns;
+           } else {
+               try { ansObj = JSON.parse(finalStudentAns); } catch(e) {}
+           }
+
+           let stuLines = '', keyLines = '';
+           stmts.forEach((stmt, i) => {
+               const stuVal = ansObj[String(i)] || '-';
+               const keyVal = keyObj[String(i)] || '-';
+               stuLines += `<div style="margin-bottom:3px;">${i+1}. ${stmt}: <b>${stuVal}</b></div>`;
+               keyLines += `<div style="margin-bottom:3px;">${i+1}. ${stmt}: <b>${keyVal}</b></div>`;
+           });
+           displayStudent = stuLines || '-';
+           displayKey     = keyLines || '-';
+
+       } else if (qType === 'Esai') {
+           displayStudent = finalStudentAns ? String(finalStudentAns) : '-';
+           displayKey     = '<i style="color:#94a3b8;">(Penilaian kebijakan guru)</i>';
+
+       } else {
+           // PG Biasa
+           displayStudent = finalStudentAns ? String(finalStudentAns) : '-';
+           displayKey     = qKeyRaw || '-';
+       }
+
+       // ============================================================
+       // BUILD HTML TIAP SOAL
+       // ============================================================
+       contentHtml += `
+          <div class="question-box">
+             <div class="q-header">
+                 <span style="font-weight:bold;">No. ${idx + 1}</span>
+                 <span style="font-size:10px; font-weight:bold; color:#334155; background:#f1f5f9; padding:2px 8px; border:1px solid #cbd5e1; border-radius:4px; margin-left:8px; margin-right:8px;">
+                     ${qType.replace('_',' ')}
+                 </span>
+                 <span style="font-size:10px; color:#64748b;">Poin: <b>${Number(pointEarned.toFixed(2))} / ${qWeight}</b></span>
+                 <span style="font-weight:bold; color:${statusColor}; margin-left:auto; font-size:10px;">${statusText}</span>
+             </div>
+             <div class="q-content">
+                 ${qBody}
+                 ${imgHtml}
+             </div>
+             <table class="ans-table">
+                 <tr>
+                     <td width="50%" style="background-color:#f8fafc; border-right:1px solid #e2e8f0;">
+                         <div class="label">JAWABAN SISWA:</div>
+                         <div class="value" style="color:${diff < 0.01 ? '#15803d' : '#334155'}">
+                             ${displayStudent}
+                         </div>
+                     </td>
+                     <td width="50%" style="background-color:#f0fdf4;">
+                         <div class="label" style="color:#15803d;">KUNCI JAWABAN:</div>
+                         <div class="value" style="color:#14532d;">
+                             ${displayKey}
+                         </div>
+                     </td>
+                 </tr>
+             </table>
+          </div>
+       `;
+    }); // end forEach questions
+
+    // Tambahkan nilai koreksi esai manual dari guru (jika ada)
+    // Nilai ini disimpan oleh saveEssayGrade() di dalam JSON answers sebagai _manual_essay_score
+    const manualEssayPoin = (studentAnswers['_manual_essay_score'] !== undefined && studentAnswers['_manual_essay_score'] !== null)
+      ? parseFloat(studentAnswers['_manual_essay_score'])
+      : 0;
+    totalScore += manualEssayPoin;
+
+    const finalScoreCalc = maxPoints > 0 ? Math.round((totalScore / maxPoints) * 100) : 0;
+    
+    const logoUrl    = 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Logo_of_Ministry_of_Education_and_Culture_of_Republic_of_Indonesia.svg/600px-Logo_of_Ministry_of_Education_and_Culture_of_Republic_of_Indonesia.svg.png';
+    const logoBase64 = getBase64Image(logoUrl);
+
+    // --- 4. BUILD HTML LENGKAP ---
+    const fullHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          @page { size: A4; margin: 15mm; }
+          body { font-family: 'Helvetica', sans-serif; font-size: 11px; color: #1e293b; -webkit-print-color-adjust: exact; }
+          .header { text-align: center; border-bottom: 2px solid #334155; padding-bottom: 10px; margin-bottom: 20px; }
+          .header img { height: 60px; margin-bottom: 5px; }
+          .header h2 { margin: 5px 0; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; color:#0f172a; }
+          .header p { margin: 0; font-size: 12px; color: #64748b; }
+          .meta { margin-bottom: 20px; font-size: 11px; border: 1px solid #cbd5e1; padding: 12px; border-radius: 6px; background-color: #f8fafc; }
+          .meta table { width: 100%; border-collapse: collapse; }
+          .meta td { padding: 4px; vertical-align: middle; }
+          .question-box { border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 15px; overflow: hidden; page-break-inside: avoid; background-color: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+          .q-header { background-color: #f1f5f9; padding: 8px 12px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; }
+          .q-content { padding: 12px; font-size: 12px; line-height: 1.5; color: #334155; }
+          .ans-table { width: 100%; border-collapse: collapse; border-top: 1px solid #cbd5e1; }
+          .ans-table td { padding: 10px; vertical-align: top; }
+          .label { font-size: 9px; font-weight: 800; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px; opacity: 0.8; }
+          .value { font-size: 11px; line-height: 1.6; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+           ${logoBase64 ? `<img src="${logoBase64}">` : ''}
+           <h2>Lembar Jawaban Siswa</h2>
+           <p>Laporan Hasil Ujian Berbasis Komputer</p>
+        </div>
+        <div class="meta">
+           <table>
+              <tr>
+                <td width="15%" style="color:#64748b;">Nama Siswa</td>
+                <td width="1%">:</td>
+                <td width="40%"><b>${studentName}</b></td>
+                <td width="20%" style="text-align:right; color:#64748b;">NILAI AKHIR</td>
+                <td width="1%">:</td>
+                <td style="text-align:right;">
+                  <b style="font-size:18px; color:#2563eb; background:#dbeafe; padding:4px 10px; border-radius:6px; border:1px solid #bfdbfe;">${finalScoreCalc}</b>
+                </td>
+              </tr>
+              <tr>
+                <td style="color:#64748b;">ID Respons</td>
+                <td>:</td>
+                <td style="font-family:monospace; color:#64748b;">${responseId}</td>
+                <td style="text-align:right; color:#64748b;">Poin Esai (Koreksi)</td>
+                <td>:</td>
+                <td style="text-align:right;"><b>${manualEssayPoin > 0 ? manualEssayPoin + ' poin' : '(belum dikoreksi)'}</b></td>
+              </tr>
+              <tr>
+                <td style="color:#64748b;">Mata Pelajaran</td>
+                <td>:</td>
+                <td>${examName}</td>
+                <td style="text-align:right; color:#64748b;">Waktu Cetak</td>
+                <td>:</td>
+                <td style="text-align:right;">${Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm")}</td>
+              </tr>
+           </table>
+        </div>
+        ${contentHtml}
+      </body>
+      </html>
+    `;
+
+    // --- 5. SIMPAN KE DRIVE & RETURN URL ---
+    const blob    = Utilities.newBlob(fullHtml, 'text/html', 'LJK.html');
+    const pdfBlob = blob.getAs('application/pdf').setName(`LJK_${studentName.replace(/\s+/g, '_')}_${Date.now()}.pdf`);
+
+    let targetFolder;
+    const folderName = "SIPADU_REPORTS";
+    const folders = DriveApp.getFoldersByName(folderName);
+    if (folders.hasNext()) targetFolder = folders.next();
+    else targetFolder = DriveApp.createFolder(folderName);
+
+    const file = targetFolder.createFile(pdfBlob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    return { 
+      success: true, 
+      url: 'https://drive.google.com/uc?export=download&id=' + file.getId(),
+      fileId: file.getId()
+    };
+
+  } catch (e) {
+    return { success: false, message: 'Error PDF: ' + e.toString() };
+  }
+}
+
+/* ============================================================
+   FITUR IMAGE FOLDER GENERATOR (BARU)
+   ============================================================ */
+
+// 1. Ambil Data Gambar yang Tersimpan
+function getSavedImages() {
+  const sheet = SS.getSheetByName('Gambar');
+  if (!sheet || sheet.getLastRow() <= 1) return [];
+  
+  const data = sheet.getDataRange().getValues();
+  // Skip Header, Map data ke object
+  return data.slice(1).map(r => ({
+    id: r[0],
+    name: r[1],
+    link: r[2],
+    folderId: r[4],
+    date: r[5] instanceof Date ? Utilities.formatDate(r[5], Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm") : r[5]
+  })).reverse(); // Tampilkan yang terbaru di atas
+}
+
+// 2. Proses Folder Drive dan Simpan Link
+// 2. Proses Folder Drive dan Simpan Link (DENGAN PENGECEKAN DUPLIKAT)
+function processFolderImages(folderUrl) {
+  try {
+    // A. Ekstrak ID Folder dari URL
+    let folderId = "";
+    const match1 = folderUrl.match(/folders\/([a-zA-Z0-9-_]+)/);
+    const match2 = folderUrl.match(/id=([a-zA-Z0-9-_]+)/);
+    
+    if (match1) folderId = match1[1];
+    else if (match2) folderId = match2[1];
+    else folderId = folderUrl; // Asumsi input langsung ID
+
+    if (!folderId) return { success: false, message: 'URL Folder tidak valid.' };
+
+    const folder = DriveApp.getFolderById(folderId);
+    const files = folder.getFiles();
+    const sheet = SS.getSheetByName('Gambar');
+    
+    // --- TAMBAHAN BARU: LOGIKA CEK DUPLIKAT ---
+    const existingData = sheet.getDataRange().getValues();
+    const existingFileIds = new Set(); // Gunakan Set untuk pencarian cepat
+
+    // Loop data lama (mulai index 1 utk skip header)
+    for (let i = 1; i < existingData.length; i++) {
+        // Kita ambil ID unik dari kolom Link (Kolom C / Index 2)
+        // Format di database: https://drive.google.com/thumbnail?id=FILE_ID_DISINI&sz=w1000
+        const link = String(existingData[i][2]); 
+        const idMatch = link.match(/id=([a-zA-Z0-9-_]+)/);
+        if (idMatch && idMatch[1]) {
+            existingFileIds.add(idMatch[1]);
+        }
+    }
+    // ------------------------------------------
+
+    let count = 0;
+    let skipped = 0; // Hitung yang dilewati
+    const addedImages = [];
+
+    // Loop semua file dalam folder
+    while (files.hasNext()) {
+      const file = files.next();
+      const fileId = file.getId(); // Ambil ID File Asli
+      const mime = file.getMimeType();
+      
+      // Filter hanya file gambar
+      if (mime.includes('image/')) {
+        
+        // --- CEK APAKAH ID SUDAH ADA? ---
+        if (existingFileIds.has(fileId)) {
+            skipped++; 
+            continue; // Lompati proses penyimpanan jika sudah ada
+        }
+        // --------------------------------
+
+        // FORMAT LINK SESUAI PERMINTAAN
+        const directLink = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+        const fileName = file.getName();
+        // ID Unik Database (Bisa random atau based on ID file)
+        const uniqueID = 'IMG-' + fileId.substring(0, 8); 
+        const now = new Date();
+
+        // Simpan ke Sheet: ['ImageID', 'FileName', 'DirectLink', 'Preview', 'FolderID', 'DateAdded']
+        sheet.appendRow([uniqueID, fileName, directLink, directLink, folderId, now]);
+        
+        addedImages.push({
+          id: uniqueID,
+          name: fileName,
+          link: directLink,
+          date: Utilities.formatDate(now, Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm")
+        });
+        
+        count++;
+      }
+    }
+
+    if (count === 0 && skipped === 0) {
+      return { success: false, message: 'Tidak ditemukan file gambar di folder tersebut.' };
+    } else if (count === 0 && skipped > 0) {
+        return { success: true, count: 0, message: `Tidak ada gambar baru. ${skipped} gambar sudah ada di database.` };
+    }
+
+    return { success: true, count: count, skipped: skipped, data: addedImages };
+
+  } catch (e) {
+    Logger.log(e.toString());
+    return { success: false, message: 'Error: ' + e.toString() + '. Pastikan Link benar dan Folder disetting "Anyone with the link can view".' };
+  }
+}
+
+// 3. Hapus Gambar dari Database (Opsional, hanya hapus row excel)
+function deleteSavedImage(imageId) {
+  const sheet = SS.getSheetByName('Gambar');
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(imageId)) {
+      sheet.deleteRow(i + 1);
+      return { success: true };
+    }
+  }
+  return { success: false, message: 'Data tidak ditemukan.' };
+}
+
+/* ==========================================
+   FITUR KONFIGURASI (LOGO & JUDUL)
+   ========================================== */
+
+// 1. Ambil Konfigurasi untuk Frontend
+function getAppConfig() {
+  const sheet = SS.getSheetByName('Konfigurasi');
+  if (!sheet) return { success: false, message: 'Sheet Konfigurasi tidak ditemukan' };
+  
+  const data = sheet.getDataRange().getValues();
+  const config = {};
+  
+  // Skip header, loop dari baris ke-2
+  for (let i = 1; i < data.length; i++) {
+    const key = data[i][0];
+    const val = data[i][1];
+    config[key] = val;
+  }
+  
+  return { success: true, data: config };
+}
+
+// 2. Simpan Konfigurasi dari Form
+function saveAppConfig(formObject) {
+  const sheet = SS.getSheetByName('Konfigurasi');
+  if (!sheet) return { success: false, message: 'Sheet Konfigurasi tidak ditemukan' };
+  
+  const data = sheet.getDataRange().getValues();
+  
+  // Helper function: Cek jika Key sudah ada (Update), jika belum (Append)
+  const updateOrAppend = (key, newValue) => {
+    let found = false;
+    // Loop data yang ada (mulai baris 2, index 1)
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === key) {
+        // Update nilai di kolom B (indeks 2 di sheet, atau kolom ke-2)
+        sheet.getRange(i + 1, 2).setValue(newValue);
+        found = true;
+        break;
+      }
+    }
+    // Jika key tidak ditemukan, buat baris baru
+    if (!found) {
+      sheet.appendRow([key, newValue]);
+    }
+  };
+
+  try {
+    // Simpan 5 variabel utama
+    updateOrAppend('app_name', formObject.appName);
+    updateOrAppend('app_subtitle', formObject.appSubtitle);
+    updateOrAppend('app_logo', formObject.appLogo);
+    updateOrAppend('app_background', formObject.appBackground);
+    updateOrAppend('show_exam_result', formObject.showExamResult === 'true' ? 'true' : 'false');
+    
+    return { success: true, message: 'Konfigurasi berhasil disimpan!' };
+  } catch (e) {
+    return { success: false, message: 'Error: ' + e.toString() };
+  }
+}
+
+// Di file Code.gs (Tambahkan jika belum ada, atau gunakan yg sudah ada)
+function getAllImages() {
+  const sheet = SS.getSheetByName('Gambar');
+  // Skip header, ambil semua data
+  if (sheet.getLastRow() <= 1) return [];
+  
+  const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 6).getValues();
+  
+  // Map data ke format object
+  return data.map(r => ({
+    id: r[0],
+    name: r[1],
+    link: r[2], // Ini yang akan diambil sebagai URL Logo
+    preview: r[3],
+    date: Utilities.formatDate(new Date(r[5]), Session.getScriptTimeZone(), "dd/MM/yyyy")
+  }));
+}
+
+/* --- TAMBAHKAN DI BAGIAN BAWAH CODE.GS --- */
+
+// Fungsi untuk mengambil daftar Mapel & Kelas milik Guru yang sedang login
+// 2. FUNGSI UNTUK GURU: Ambil tugas milik DIA SENDIRI (REVISI FIX ERROR verifyUser)
+function getTeacherAssignments(userId, token) {
+  // --- BAGIAN INI DIHAPUS KARENA MENYEBABKAN ERROR ---
+  // const user = verifyUser(userId, token); 
+  // if (!user) return [];
+  // ----------------------------------------------------
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Users');
+  const data = sheet.getDataRange().getValues();
+  
+  // Cari baris milik user ini (Pastikan tipe data cocok String vs String)
+  const userRow = data.find(r => String(r[0]).trim() === String(userId).trim());
+  
+  // Jika user tidak ditemukan di database
+  if (!userRow) {
+    return [];
+  }
+
+  const assignmentData = userRow[4]; // Kolom E (Data Tugas)
+  let results = [];
+
+  // Jika kolom tugas kosong
+  if (!assignmentData) return [];
+
+  // A. COBA BACA FORMAT JSON (Sistem)
+  try {
+    const parsed = JSON.parse(assignmentData);
+    if (Array.isArray(parsed)) {
+      return parsed.map(item => ({
+         subject: item.subject || "Mapel Umum",
+         classVal: item.classVal || item.class || "",
+         label: `${item.subject} - ${item.classVal || item.class}`
+      }));
+    }
+  } catch (e) {
+    // Abaikan error, lanjut ke text manual
+  }
+
+  // B. BACA FORMAT TEXT MANUAL (Dipisah Koma)
+  // Contoh: "Matematika:X-IPA, Fisika:XII-IPA" atau hanya "X-IPA"
+  const textData = String(assignmentData);
+  const parts = textData.split(',');
+  
+  parts.forEach(p => {
+     const raw = p.trim();
+     if(raw) {
+        let s = "Mapel Saya"; // Default jika tidak ada nama mapel
+        let c = raw;
+        
+        // Cek apakah ada pemisah titik dua (Mapel:Kelas)
+        if(raw.includes(':')) {
+           let split = raw.split(':');
+           s = split[0].trim();
+           c = split[1].trim();
+        }
+        
+        results.push({
+           subject: s,
+           classVal: c,
+           label: `${s} - ${c}`
+        });
+     }
+  });
+
+  return results;
+}
+
+/* --- TAMBAHKAN DI BAGIAN BAWAH CODE.GS --- */
+
+function getMasterData() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Master_Data');
+  
+  // 1. Validasi: Jika sheet tidak ditemukan, kembalikan array kosong
+  if (!sheet) {
+    return { classes: [], subjects: [] };
+  }
+  
+  // 2. Validasi: Jika sheet kosong (hanya ada header atau kosong sama sekali)
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) {
+    return { classes: [], subjects: [] }; 
+  }
+  
+  // 3. Ambil data range
+  // Mulai dari Baris 2, Kolom 1 (A), sebanyak (Total Baris - 1), Ambil 2 Kolom (A & B)
+  const data = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
+  
+  let classes = [];
+  let subjects = [];
+  
+  // 4. Loop setiap baris data
+  data.forEach(row => {
+    // --- Proses Kolom A (Kelas) ---
+    // Konversi ke String dan Trim (hapus spasi depan/belakang)
+    const classVal = String(row[0]).trim();
+    if (classVal !== '' && classVal !== 'undefined') {
+      classes.push(classVal);
+    }
+
+    // --- Proses Kolom B (Mapel) ---
+    const subjectVal = String(row[1]).trim();
+    if (subjectVal !== '' && subjectVal !== 'undefined') {
+      subjects.push(subjectVal);
+    }
+  });
+
+  // 5. Return Object dengan Data Unik & Terurut
+  // [...new Set(array)] digunakan untuk menghapus data duplikat
+  // .sort() digunakan untuk mengurutkan Abjad A-Z
+  return {
+    classes: [...new Set(classes)].sort(),
+    subjects: [...new Set(subjects)].sort()
+  };
+}
+
+
+/* ==========================================================================
+   PERBAIKAN LOGIKA BACA DATA (JSON & MANUAL TEXT)
+   ========================================================================== */
+
+// 1. FUNGSI UNTUK ADMIN: Ambil SEMUA tugas dari seluruh Guru
+function getAllTeacherAssignments() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Users');
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  let uniqueSet = new Set();
+  let resultArray = [];
+
+  // Loop dari baris 2 (melewati header)
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const role = String(row[3]).trim();       // Kolom D: Role
+    const assignmentData = row[4];            // Kolom E: Data Kelas/Mapel
+    const teacherName = row[1];               // Kolom B: Nama Guru (Opsional, buat label)
+
+    // Hanya proses jika Role Guru & Data tidak kosong
+    if (role === 'Guru' && assignmentData) {
+      
+      // -- COBA BACA FORMAT JSON (SISTEM) --
+      let isJson = false;
+      try {
+        const parsed = JSON.parse(assignmentData);
+        if (Array.isArray(parsed)) {
+          isJson = true;
+          parsed.forEach(item => {
+            const subj = item.subject ? item.subject.trim() : "Mapel Umum";
+            const cls = item.classVal ? item.classVal.trim() : (item.class ? item.class.trim() : "");
+            
+            if (cls) {
+              const key = `${subj}|${cls}`; // Kunci unik
+              if (!uniqueSet.has(key)) {
+                uniqueSet.add(key);
+                resultArray.push({
+                  subject: subj,
+                  classVal: cls,
+                  label: `${subj} - ${cls}` // Tampilan: Fisika - XII IPA
+                });
+              }
+            }
+          });
+        }
+      } catch (e) {
+        // Gagal parse JSON, berarti ini TEXT MANUAL
+        isJson = false;
+      }
+
+      // -- JIKA BUKAN JSON, BACA SEBAGAI TEXT MANUAL (Dipisah Koma) --
+      if (!isJson) {
+        const textData = String(assignmentData);
+        // Pecah berdasarkan koma (jika ada banyak kelas: "XA, XB, XC")
+        const parts = textData.split(',');
+        
+        parts.forEach(p => {
+          const rawClass = p.trim();
+          if (rawClass) {
+            // Asumsi: Jika manual, kita belum tahu Mapelnya, jadi kita sebut "Mapel Guru"
+            // Atau Anda bisa mengubah format manual di Excel jadi "Matematika:XII-IPA" agar lebih detail
+            
+            // Cek apakah ada pemisah titik dua ":" (Misal: MTK:XII-IPA)
+            let subjName = "Mapel Guru";
+            let className = rawClass;
+            
+            if (rawClass.includes(':')) {
+               const splitManual = rawClass.split(':');
+               subjName = splitManual[0].trim();
+               className = splitManual[1].trim();
+            }
+
+            const key = `${subjName}|${className}`;
+            if (!uniqueSet.has(key)) {
+               uniqueSet.add(key);
+               resultArray.push({
+                 subject: subjName,
+                 classVal: className,
+                 label: `${subjName} - ${className}`
+               });
+            }
+          }
+        });
+      }
+    }
+  }
+
+  // Urutkan Abjad
+  return resultArray.sort((a, b) => a.label.localeCompare(b.label));
+}
+
+/**
+ * Fungsi untuk generate kartu ujian satu siswa dari template Google Slides
+ */
+function downloadKartuSiswa(studentID) {
+  // CATATAN: Variabel TEMPLATE_ID dan FOLDER_ID sekarang diambil dari Global (atas file)
+  
+  try {
+    const userSheet = SS.getSheetByName('Users');
+    const userData = userSheet.getDataRange().getValues();
+    let student = null;
+
+    // 1. Cari data siswa berdasarkan ID
+    for (let i = 1; i < userData.length; i++) {
+      if (String(userData[i][0]) === String(studentID)) {
+        student = {
+          id: userData[i][0],     // Kolom A
+          nama: userData[i][1],   // Kolom B
+          kelas: userData[i][4],  // Kolom E
+          password: userData[i][2] // Kolom C (Opsional jika ingin ditampilkan)
+        };
+        break;
+      }
+    }
+
+    if (!student) throw new Error("Siswa tidak ditemukan.");
+
+    // 2. Cek Folder Tujuan (Fallback ke Root jika error/tidak ada)
+    let folder;
+    try {
+      folder = DriveApp.getFolderById(FOLDER_ID);
+    } catch(e) {
+      folder = DriveApp.getRootFolder();
+    }
+
+    // 3. Duplikasi template
+    const fileName = "Kartu_Ujian_" + student.nama;
+    const copy = DriveApp.getFileById(TEMPLATE_ID).makeCopy(fileName, folder);
+    const slideId = copy.getId();
+    const presentation = SlidesApp.openById(slideId);
+
+    // 4. Ganti Variabel (Replace Text)
+    presentation.getSlides().forEach(slide => {
+      slide.replaceAllText('{{nama}}', student.nama);
+      slide.replaceAllText('{{userid}}', student.id);
+      slide.replaceAllText('{{password}}', student.password); // Tambahan konsistensi
+      slide.replaceAllText('{{kelas}}', student.kelas || '-');
+    });
+    
+    presentation.saveAndClose();
+
+    // 5. Konversi ke PDF
+    const pdfBlob = copy.getAs(MimeType.PDF);
+    const pdfFile = folder.createFile(pdfBlob);
+
+    // 6. Hapus file duplikat slide (agar tidak nyampah)
+    copy.setTrashed(true);
+
+    // 7. Return URL untuk download
+    return {
+      success: true,
+      url: pdfFile.getDownloadUrl().replace("?e=download&gd=true", ""), // Parameter gd=true kadang membantu direct download
+      fileName: fileName + ".pdf"
+    };
+
+  } catch (e) {
+    return { success: false, message: 'Gagal membuat kartu: ' + e.toString() };
+  }
+}
+
+
+/* ==========================================================================
+   FITUR TAMBAHAN: DOWNLOAD KARTU MASSAL (ZIP)
+   ========================================================================== */
+
+// 1. Ambil Daftar Semua User (Untuk Tabel Manajemen User)
+function getAllUsers(requestorID, requestorToken) {
+  // Verifikasi Admin
+  verifyAdminAccess(requestorID, requestorToken);
+  
+  const sheet = SS.getSheetByName('Users');
+  const data = sheet.getDataRange().getValues();
+  const users = [];
+  
+  // Skip header (i=1)
+  for (let i = 1; i < data.length; i++) {
+    users.push({
+      id: data[i][0],
+      name: data[i][1],
+      password: data[i][2],
+      role: data[i][3],
+      class: data[i][4],
+      isActive: data[i][6]
+    });
+  }
+  return users;
+}
+
+/* ==========================================================================
+   MODIFIKASI: DOWNLOAD KARTU MASSAL DENGAN PROGRESS
+   ========================================================================== */
+
+// 1. Fungsi Baru: Cek Progress (Dipanggil berkala oleh Frontend)
+function checkDownloadProgress(processId) {
+  return CacheService.getScriptCache().get('PROGRESS_' + processId);
+}
+
+// 2. Modifikasi Fungsi Download yang sudah ada
+function downloadKartuMassal(selectedUserIds, processId) { // <--- Tambah parameter processId
+  // Gunakan Global Config yang sudah diset di atas
+  // const TEMPLATE_ID = '...'; (Sudah Global)
+  // const FOLDER_ID   = '...'; (Sudah Global)
+
+  try {
+    const userSheet = SS.getSheetByName('Users');
+    const userData = userSheet.getDataRange().getValues();
+    const blobs = [];
+    
+    // Init Cache Service
+    const cache = CacheService.getScriptCache();
+    const progressKey = 'PROGRESS_' + processId;
+
+    // Filter user
+    const targetUsers = userData.filter((row, i) => i > 0 && selectedUserIds.includes(String(row[0])));
+    const total = targetUsers.length;
+
+    if (total === 0) {
+      return { success: false, message: 'Tidak ada data siswa yang dipilih.' };
+    }
+
+    // Set Progress Awal 0%
+    if(processId) cache.put(progressKey, `0/${total}`, 21600); // Expire 6 jam (aman)
+
+    // Loop setiap user
+    for (let i = 0; i < total; i++) {
+      const user = targetUsers[i];
+      const uID = user[0];
+      const uName = user[1];
+      const uPass = user[2];
+      const uClass = user[4];
+
+      // --- PROSES GENERATE PDF ---
+      const tempFile = DriveApp.getFileById(TEMPLATE_ID).makeCopy('TEMP_' + uID);
+      const tempId = tempFile.getId();
+      const presentation = SlidesApp.openById(tempId);
+      
+      presentation.getSlides().forEach(slide => {
+        slide.replaceAllText('{{nama}}', uName);
+        slide.replaceAllText('{{userid}}', uID);
+        slide.replaceAllText('{{password}}', uPass); 
+        slide.replaceAllText('{{kelas}}', uClass || '-');
+      });
+      
+      presentation.saveAndClose();
+
+      const pdfBlob = tempFile.getAs(MimeType.PDF);
+      pdfBlob.setName(`Kartu_${uName}_${uClass}.pdf`);
+      blobs.push(pdfBlob);
+
+      tempFile.setTrashed(true);
+      
+      // --- UPDATE PROGRESS KE CACHE ---
+      // Format: "JumlahSelesai/Total" (Contoh: "5/10")
+      if(processId) {
+         cache.put(progressKey, `${i + 1}/${total}`, 21600);
+      }
+    }
+
+    // Buat ZIP
+    const timeStamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd-MM-yyyy_HHmmss");
+    const zipName = `Kartu_Ujian_Massal_${timeStamp}.zip`;
+    const zipBlob = Utilities.zip(blobs, zipName);
+    
+    // Simpan & Return
+    let folder;
+    try { folder = DriveApp.getFolderById(FOLDER_ID); } 
+    catch(e) { folder = DriveApp.getRootFolder(); }
+
+    const zipFile = folder.createFile(zipBlob);
+    zipFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    
+    // Bersihkan Cache setelah selesai
+    if(processId) cache.remove(progressKey);
+
+    return { 
+      success: true, 
+      url: zipFile.getDownloadUrl().replace("?e=download&gd=true", ""), 
+      message: `Berhasil memproses ${total} kartu siswa.` 
+    };
+
+  } catch (e) {
+    return { success: false, message: 'Error: ' + e.toString() };
+  }
+}
+
+/**
+ * FUNGSI: HITUNG ULANG NILAI (RECALCULATE) - VERSI FIX (VARIABLE NAME CORRECTION)
+ */
+function recalculateExamScores() {
+  const ui = SpreadsheetApp.getUi();
+  
+  // 1. Minta Input ID Ujian (ExamID)
+  const response = ui.prompt(
+    'Hitung Ulang Nilai',
+    'Masukkan ExamID yang ingin dihitung ulang (Contoh: UH-MTK-01):',
+    ui.ButtonSet.OK_CANCEL
+  );
+
+  if (response.getSelectedButton() !== ui.Button.OK) return;
+  const targetExamID = response.getResponseText().trim();
+  
+  if (!targetExamID) {
+    ui.alert('ExamID tidak boleh kosong.');
+    return;
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // 2. Ambil Data Soal (Questions)
+  const qSheet = ss.getSheetByName('Questions');
+  const qData = qSheet.getDataRange().getValues();
+  
+  // Filter soal hanya untuk ExamID tersebut & simpan dalam Map
+  let qMap = {};
+  let examMaxPoints = 0; // <--- INI VARIABEL YANG BENAR
+
+  qData.forEach((row, i) => {
+    if (i > 0 && String(row[1]) === targetExamID) {
+      const qid = String(row[0]);
+      const weight = row[8] ? parseFloat(row[8]) : 10;
+      
+      qMap[qid] = {
+        type: row[2],      // Col C
+        options: row[5],   // Col F (Options JSON)
+        key: row[6],       // Col G (Key)
+        weight: weight     // Col I
+      };
+      
+      examMaxPoints += weight;
+    }
+  });
+
+  if (examMaxPoints === 0) {
+    ui.alert('ExamID tidak ditemukan atau tidak ada soal.');
+    return;
+  }
+
+  // 3. Ambil Data Jawaban Siswa (Responses)
+  const rSheet = ss.getSheetByName('Responses');
+  const rData = rSheet.getDataRange().getValues();
+  let updateCount = 0;
+  
+  // 4. Loop Semua Siswa di Sheet Responses
+  for (let i = 1; i < rData.length; i++) {
+    const rowExamID = String(rData[i][2]);
+    
+    // Hanya proses jika ExamID cocok
+    if (rowExamID === targetExamID) {
+      const answersJSON = rData[i][3];
+      let answers = {};
+      
+      try { answers = JSON.parse(answersJSON); } catch (e) { continue; }
+
+      let totalPoints = 0;
+
+      // --- MULAI PENILAIAN ULANG ---
+      Object.keys(qMap).forEach(qid => {
+        const q = qMap[qid];
+        const userAns = answers[qid]; // Jawaban Siswa untuk soal ini
+        const weight = q.weight;
+
+        // ======================================================
+        // A. TIPE PILIHAN GANDA (PG) BIASA
+        // ======================================================
+        if (q.type === 'PG') {
+            const cleanUser = String(userAns || '').trim().toLowerCase();
+            const cleanKey = String(q.key || '').trim();
+            const mapHuruf = ['A', 'B', 'C', 'D', 'E'];
+            
+            // Cek jika Kunci = Huruf
+            const keyIndex = mapHuruf.indexOf(cleanKey.toUpperCase());
+            let isCorrect = false;
+
+            if (keyIndex !== -1) {
+                // Kunci adalah Huruf -> Bandingkan Teks Opsinya
+                let opts = [];
+                try { opts = JSON.parse(q.options); } catch (e) {}
+                if (opts[keyIndex]) {
+                    const correctText = String(opts[keyIndex]).trim().toLowerCase();
+                    if (cleanUser === correctText && correctText !== '') isCorrect = true;
+                }
+            } else {
+                // Kunci adalah Teks Langsung
+                if (cleanUser === cleanKey.toLowerCase()) isCorrect = true;
+            }
+            if (isCorrect) totalPoints += weight;
+        }
+
+        // ======================================================
+        // B. TIPE PILIHAN GANDA KOMPLEKS (REGEX FIX)
+        // ======================================================
+        else if (q.type === 'PG_KOMPLEKS') {
+            // [FIX] Menggunakan konversi huruf ke teks opsi yang benar
+            let keyArr = [];
+            let ansArr = [];
+            let optionsArrRC = [];
+
+            try { keyArr = JSON.parse(q.key); } 
+            catch(e) { keyArr = String(q.key || '').split(',').map(s => s.trim()); }
+
+            try { optionsArrRC = JSON.parse(q.options); } 
+            catch(e) { optionsArrRC = []; }
+
+            if (Array.isArray(userAns)) {
+                ansArr = userAns;
+            } else {
+                try { ansArr = JSON.parse(userAns); }
+                catch(e) { ansArr = String(userAns || '').split(',').map(s => s.trim()); }
+            }
+
+            // Konversi kunci huruf (A,B,C) ke teks opsi
+            const mapHurufRC = ['A', 'B', 'C', 'D', 'E'];
+            const finalKey = keyArr.map(k => {
+                const cleanK = String(k).trim().toUpperCase();
+                const idx = mapHurufRC.indexOf(cleanK);
+                if (idx !== -1 && optionsArrRC[idx]) {
+                    return String(optionsArrRC[idx]).trim().toLowerCase();
+                }
+                return cleanK.toLowerCase();
+            });
+            const finalUser = ansArr.map(u => String(u).trim().toLowerCase());
+
+            let matchCount = 0;
+            let wrongCount = 0;
+            
+            finalUser.forEach(u => {
+                if (finalKey.includes(u)) matchCount++;
+                else wrongCount++;
+            });
+
+            if (wrongCount === 0 && finalKey.length > 0) {
+                totalPoints += (matchCount / finalKey.length) * weight;
+            }
+        }
+
+        // ======================================================
+        // C. TIPE BENAR/SALAH (BS)
+        // ======================================================
+        else if (q.type === 'BS') {
+            let keyObj = {};
+            try { keyObj = JSON.parse(q.key); } catch (e) {
+                // Fallback Legacy
+                if (String(userAns).toLowerCase() === String(q.key).toLowerCase()) totalPoints += weight;
+                return;
+            }
+            const ansObj = (typeof userAns === 'object') ? userAns : {};
+            const totalRows = Object.keys(keyObj).length;
+            
+            if (totalRows > 0) {
+                let matches = 0;
+                for (const k in keyObj) {
+                    const kVal = String(keyObj[k]).trim().toLowerCase();
+                    const uVal = String(ansObj[k] || '').trim().toLowerCase();
+                    
+                    const isMatch = (kVal === uVal) || 
+                                    (kVal === 'benar' && uVal === 'sesuai') || 
+                                    (kVal === 'salah' && uVal === 'tidak sesuai');
+                    if (isMatch) matches++;
+                }
+                totalPoints += (matches / totalRows) * weight;
+            }
+        }
+
+        // ======================================================
+        // D. TIPE MENJODOHKAN (JODOH)
+        // ======================================================
+        else if (q.type === 'JODOH') {
+            const pairs = q.options ? JSON.parse(q.options) : [];
+            if (pairs.length > 0 && userAns && typeof userAns === 'object') {
+                let matches = 0;
+                pairs.forEach(p => { 
+                    if (userAns[p.q] === p.a) matches++; 
+                });
+                totalPoints += (matches / pairs.length) * weight;
+            }
+        }
+      }); // End Loop Questions
+
+      // 5. Hitung Skor Akhir (Skala 100)
+      // FIX DISINI: Menggunakan examMaxPoints, bukan maxPoints
+      const finalScore = examMaxPoints > 0 ? Math.round((totalPoints / examMaxPoints) * 100) : 0;
+
+      // 6. Update Nilai di Sheet (Kolom E / Index 5)
+      rSheet.getRange(i + 1, 5).setValue(finalScore); 
+      updateCount++;
+    }
+  }
+
+  ui.alert(`Selesai! Berhasil menghitung ulang nilai untuk ${updateCount} siswa pada ujian "${targetExamID}".`);
+}
+
+/**
+ * Fungsi untuk Membuka Blokir Siswa (Unlock)
+ * Mengubah status 'Curang'/'Selesai' kembali jadi 'In Progress'
+ * Agar siswa bisa melanjutkan ujian tanpa kehilangan jawaban.
+ */
+function unlockStudentExam(responseId, requestorID, requestorToken) {
+  // 1. Verifikasi Admin
+  try {
+    verifyAdminAccess(requestorID, requestorToken);
+  } catch (e) {
+    return { success: false, message: e.message };
+  }
+
+  const sheet = SS.getSheetByName('Responses');
+  const data = sheet.getDataRange().getValues();
+  
+  let found = false;
+
+  // 2. Cari Data Siswa
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(responseId)) {
+      // 3. Ubah Status (Kolom H / Index 7) kembali ke 'In Progress'
+      sheet.getRange(i + 1, 8).setValue('In Progress');
+      
+      // Opsional: Reset Log Pelanggaran jika perlu, tapi sebaiknya biarkan history di Logs tetap ada
+      
+      found = true;
+      break;
+    }
+  }
+
+  if (found) {
+    return { success: true, message: 'Akses siswa telah dibuka kembali. Siswa dapat login ulang untuk melanjutkan.' };
+  } else {
+    return { success: false, message: 'Data respon tidak ditemukan.' };
+  }
+}
+
+/**
+ * Fungsi untuk siswa mengambil hasil ujian sendiri
+ * Dipanggil dari frontend saat login dengan ujian berstatus Completed
+ */
+function getMyExamResult(responseId, userID, token) {
+  if (!isValidSession(userID, token)) {
+    return { success: false, message: 'Sesi tidak valid. Silakan login ulang.' };
+  }
+  
+  // Pastikan responseId ini benar milik userID
+  const rSheet = SS.getSheetByName('Responses');
+  const rData = rSheet.getDataRange().getValues();
+  let isOwner = false;
+  for (let i = 1; i < rData.length; i++) {
+    if (String(rData[i][0]) === String(responseId) && String(rData[i][1]) === String(userID)) {
+      isOwner = true;
+      break;
+    }
+  }
+  if (!isOwner) return { success: false, message: 'Akses ditolak: bukan data Anda.' };
+
+  return getStudentAnswerDetails(responseId);
+}
+
+function deleteQuestionsBulk(ids) {
+  if (!ids || ids.length === 0) return { success: false, message: 'Tidak ada ID yang dikirim.' };
+
+  const sheet = SS.getSheetByName('Questions');
+  const data = sheet.getDataRange().getValues();
+
+  const rowsToDelete = [];
+  for (let i = 1; i < data.length; i++) {
+    if (ids.includes(String(data[i][0]))) {
+      rowsToDelete.push(i + 1);
+    }
+  }
+
+  rowsToDelete.sort((a, b) => b - a);
+  rowsToDelete.forEach(rowNum => sheet.deleteRow(rowNum));
+
+  return { success: true, deleted: rowsToDelete.length };
+}
+
+/**
+ * Ambil daftar siswa yang relevan untuk guru yang sedang login.
+ * Admin → semua siswa. Guru → hanya siswa di kelas yang diajarnya.
+ */
+function getSiswaForGuru(requestorID, requestorToken) {
+  const uSheet = SS.getSheetByName('Users');
+  const uData  = uSheet.getDataRange().getValues();
+
+  // 1. Validasi sesi & ambil data requestor
+  let requestorRole = null;
+  let guruClasses   = []; // daftar kelas yang diajar guru
+
+  for (let i = 1; i < uData.length; i++) {
+    if (String(uData[i][0]) === String(requestorID) &&
+        String(uData[i][5]) === String(requestorToken)) {
+      requestorRole = String(uData[i][3]).trim();
+
+      if (requestorRole === 'Guru') {
+        // Kolom E berisi tugas: "Matematika:XII-RPL,Fisika:XII-TKJ"
+        const raw = String(uData[i][4] || '');
+        raw.split(',').forEach(item => {
+          const parts = item.split(':');
+          if (parts.length >= 2) {
+            guruClasses.push(parts[1].trim().toLowerCase());
+          }
+        });
+      }
+      break;
+    }
+  }
+
+  if (!requestorRole) throw new Error('Sesi tidak valid. Silakan login ulang.');
+  if (requestorRole === 'Siswa') throw new Error('Akses ditolak.');
+
+  // 2. Filter siswa
+  const result = [];
+  for (let i = 1; i < uData.length; i++) {
+    const role = String(uData[i][3]).trim();
+    if (role !== 'Siswa') continue;
+
+    const kelaSiswa = String(uData[i][4] || '').trim().toLowerCase();
+    const isActive  = String(uData[i][6]).toUpperCase() === 'TRUE';
+
+    // Admin lihat semua, Guru hanya kelasnya
+    if (requestorRole === 'Admin' || guruClasses.includes(kelaSiswa)) {
+      result.push({
+        id:       uData[i][0],
+        nama:     uData[i][1],
+        kelas:    uData[i][4],
+        isActive: isActive
+      });
+    }
+  }
+
+  return result;
+}
+
+function getScriptTimezone() {
+  return Session.getScriptTimeZone();
+}
+/**
+ * FUNGSI PANCINGAN IZIN (Run this once from Script Editor)
+ * Jalankan fungsi ini secara manual di editor Apps Script 
+ * untuk memicu pop-up otorisasi Drive dan Slides.
+ */
+function pancingIzinOtorisasi() {
+  // Pancing izin Google Drive
+  const drive = DriveApp.getRootFolder().getName();
+  
+  // Pancing izin Google Slides
+  // (Hanya memanggil API-nya agar Google mendeteksi kebutuhan scope Slides)
+  const tempSlide = SlidesApp.create("Pancingan Izin");
+  DriveApp.getFileById(tempSlide.getId()).setTrashed(true);
+  
+  Logger.log("Izin berhasil didapatkan untuk Drive dan Slides!");
+}
+
+function getExamMonitorData(requestorID, requestorToken) {
+  const uSheet = SS.getSheetByName('Users');
+  const uData  = uSheet.getDataRange().getValues();
+ 
+  let requestorRole  = null;
+  let guruClasses    = [];   // lowercase — untuk filter studentMap
+  let guruClassesRaw = [];   // case asli  — untuk dropdown kelas
+  let guruMapelRaw   = [];   // mapel yg diajar — untuk dropdown mapel
+ 
+  for (let i = 1; i < uData.length; i++) {
+    if (String(uData[i][0]) === String(requestorID) &&
+        String(uData[i][5]) === String(requestorToken)) {
+      requestorRole = String(uData[i][3]).trim();
+      if (requestorRole === 'Guru') {
+        // Format: "Matematika:XII-IPA 1,Fisika:XII-IPA 3"
+        const raw = String(uData[i][4] || '');
+        raw.split(',').forEach(item => {
+          const parts = item.split(':');
+          if (parts.length >= 2) {
+            const mapel    = parts[0].trim();
+            const kelasRaw = parts[1].trim();
+            guruClasses.push(kelasRaw.toLowerCase());
+            if (!guruClassesRaw.includes(kelasRaw)) guruClassesRaw.push(kelasRaw);
+            if (mapel && !guruMapelRaw.includes(mapel)) guruMapelRaw.push(mapel);
+          }
+        });
+      }
+      break;
+    }
+  }
+ 
+  if (!requestorRole)            return { success: false, message: 'Sesi tidak valid. Silakan login ulang.' };
+  if (requestorRole === 'Siswa') return { success: false, message: 'Akses ditolak.' };
+ 
+  // ── 1. Bangun Map SEMUA Siswa yang relevan ────────────────────────
+  // Menyimpan semua data siswa termasuk token (untuk cek sudah login atau belum)
+  const studentMap = {};
+  for (let i = 1; i < uData.length; i++) {
+    if (String(uData[i][3]).trim() !== 'Siswa') continue;
+    const kelas    = String(uData[i][4] || '').trim();
+    const tokenVal = String(uData[i][5] || '').trim();
+ 
+    if (requestorRole === 'Admin' || guruClasses.includes(kelas.toLowerCase())) {
+      studentMap[String(uData[i][0])] = {
+        nama:     String(uData[i][1]),
+        kelas:    kelas,
+        // Token UUID panjangnya 36 karakter; kalau < 10 dianggap belum login
+        hasToken: tokenVal.length >= 10
+      };
+    }
+  }
+ 
+  // ── 2. Bangun Map Ujian & Dropdown ───────────────────────────────
+  const eSheet       = SS.getSheetByName('Exams');
+  const eData        = eSheet.getDataRange().getValues();
+  const examMap      = {};
+  const classToMapel = {};  // ujian AKTIF per kelas
+  const allMapelSet  = new Set();
+ 
+  for (let i = 1; i < eData.length; i++) {
+    const examId  = String(eData[i][0]);
+    const subject = String(eData[i][1] || '').trim();
+    const kelas   = String(eData[i][2] || '').trim();
+    const status  = String(eData[i][6] || '').toLowerCase();
+ 
+    examMap[examId] = { subject: subject, kelas: kelas };
+ 
+    if (status === 'aktif') {
+      if (!classToMapel[kelas]) classToMapel[kelas] = [];
+      if (subject && !classToMapel[kelas].includes(subject)) {
+        classToMapel[kelas].push(subject);
+      }
+      if (subject) allMapelSet.add(subject);
+    }
+  }
+ 
+  // ── 3. Bangun Map Pelanggaran ────────────────────────────────────
+  const lSheet      = SS.getSheetByName('Logs');
+  const lData       = lSheet.getDataRange().getValues();
+  const violMap     = {};
+  const violDetails = {};
+  for (let i = 1; i < lData.length; i++) {
+    const vKey = String(lData[i][1]) + '|' + String(lData[i][2]);
+    violMap[vKey] = (violMap[vKey] || 0) + 1;
+    if (lData[i][4]) {
+      violDetails[vKey] = violDetails[vKey]
+        ? violDetails[vKey] + '; ' + String(lData[i][4])
+        : String(lData[i][4]);
+    }
+  }
+ 
+  // ── 4. Proses Sheet Responses ────────────────────────────────────
+  const rSheet = SS.getSheetByName('Responses');
+  const rData  = rSheet.getDataRange().getValues();
+  const tz     = Session.getScriptTimeZone();
+ 
+  function fmtDate(val) {
+    if (!val || val === '') return '-';
+    try { return Utilities.formatDate(new Date(val), tz, 'dd/MM/yyyy HH:mm:ss'); }
+    catch(e) { return String(val); }
+  }
+ 
+  // Bucket hasil
+  const result = {
+    belumLogin:  [],  // Belum punya token (belum login sama sekali)
+    sudahLogin:  [],  // Punya token tapi belum ada response ujian
+    mengerjakan: [],  // Status: In Progress
+    selesai:     [],  // Status: Completed / Selesai
+    curang:      []   // Status: Curang
+  };
+ 
+  // Set untuk melacak siswa yang sudah punya response (mengerjakan/selesai/curang)
+  const studentsWithResponse = new Set(); // format: "userID|examID"
+  const studentsInAnyBucket  = new Set(); // format: "userID" saja
+ 
+  for (let i = 1; i < rData.length; i++) {
+    const userID  = String(rData[i][1]);
+    const examID  = String(rData[i][2]);
+    const status  = String(rData[i][7] || '').toLowerCase().trim();
+    const student = studentMap[userID];
+    if (!student) continue;
+ 
+    studentsWithResponse.add(userID + '|' + examID);
+    studentsInAnyBucket.add(userID);
+ 
+    const vKey = userID + '|' + examID;
+    const exam = examMap[examID] || { subject: examID, kelas: '-' };
+ 
+    const entry = {
+      responseId: String(rData[i][0]),
+      userID,
+      nama:       student.nama,
+      kelas:      student.kelas,
+      examID,
+      mapel:      exam.subject,
+      startTime:  fmtDate(rData[i][5]),
+      submitTime: fmtDate(rData[i][6]),
+      score:      rData[i][4] !== '' && rData[i][4] !== null ? rData[i][4] : '-',
+      violations: violMap[vKey] || 0,
+      violDetail: violDetails[vKey] || ''
+    };
+ 
+    if (status === 'in progress')
+      result.mengerjakan.push(entry);
+    else if (status === 'completed' || status === 'selesai')
+      result.selesai.push(entry);
+    else if (status === 'curang')
+      result.curang.push(entry);
+  }
+ 
+  // ── 5. Klasifikasi siswa yang belum ada di bucket Responses ──────
+  for (const [userID, student] of Object.entries(studentMap)) {
+    if (studentsInAnyBucket.has(userID)) continue; // sudah masuk bucket lain
+ 
+    const mapelList = classToMapel[student.kelas] || [];
+    const mapelStr  = mapelList.length > 0 ? mapelList.join(', ') : '-';
+ 
+    const entry = {
+      responseId: null,
+      userID,
+      nama:       student.nama,
+      kelas:      student.kelas,
+      mapel:      mapelStr,
+      startTime:  '-',
+      submitTime: '-',
+      score:      '-',
+      violations: 0,
+      violDetail: ''
+    };
+ 
+    if (student.hasToken) {
+      // Sudah login (punya token) tapi belum mulai ujian
+      result.sudahLogin.push(entry);
+    } else {
+      // Belum login sama sekali
+      result.belumLogin.push(entry);
+    }
+  }
+ 
+  // ── 6. Bangun opsi dropdown ──────────────────────────────────────
+  const allKelasSet = new Set(Object.values(studentMap).map(s => s.kelas));
+ 
+  const dropdownKelas = requestorRole === 'Guru'
+    ? guruClassesRaw.sort()
+    : [...allKelasSet].filter(Boolean).sort();
+ 
+  const dropdownMapel = requestorRole === 'Guru'
+    ? guruMapelRaw.sort()
+    : [...allMapelSet].filter(Boolean).sort();
+ 
+  return {
+    success: true,
+    data: result,
+    meta: {
+      dropdownKelas: dropdownKelas,
+      dropdownMapel: dropdownMapel
+    }
+  };
+}
+ 
+/**
+ * Buka blokir banyak siswa sekaligus (ubah status 'Curang' → 'In Progress').
+ * @param {string[]} responseIds - Array ResponseID yang akan dibuka blokirnya
+ */
+function bulkUnlockStudents(responseIds, requestorID, requestorToken) {
+  const uSheet = SS.getSheetByName('Users');
+  const uData  = uSheet.getDataRange().getValues();
+  let role = null;
+  for (let i = 1; i < uData.length; i++) {
+    if (String(uData[i][0]) === String(requestorID) &&
+        String(uData[i][5]) === String(requestorToken)) {
+      role = String(uData[i][3]).trim(); break;
+    }
+  }
+  if (!role)            return { success: false, message: 'Sesi tidak valid.' };
+  if (role === 'Siswa') return { success: false, message: 'Akses ditolak.' };
+  if (!responseIds || responseIds.length === 0)
+    return { success: false, message: 'Tidak ada data dipilih.' };
+ 
+  const rSheet = SS.getSheetByName('Responses');
+  const rData  = rSheet.getDataRange().getValues();
+  const idsSet = new Set(responseIds.map(String));
+  let count = 0;
+  for (let i = 1; i < rData.length; i++) {
+    if (idsSet.has(String(rData[i][0]))) {
+      rSheet.getRange(i + 1, 8).setValue('In Progress');
+      count++;
+    }
+  }
+  SpreadsheetApp.flush();
+  return { success: true, message: `${count} siswa berhasil dibuka blokirnya.`, count };
+}
+ 
+/**
+ * Reset ujian banyak siswa sekaligus (hapus baris dari sheet Responses).
+ */
+function bulkResetStudents(responseIds, requestorID, requestorToken) {
+  const uSheet = SS.getSheetByName('Users');
+  const uData  = uSheet.getDataRange().getValues();
+  let role = null;
+  for (let i = 1; i < uData.length; i++) {
+    if (String(uData[i][0]) === String(requestorID) &&
+        String(uData[i][5]) === String(requestorToken)) {
+      role = String(uData[i][3]).trim(); break;
+    }
+  }
+  if (!role)            return { success: false, message: 'Sesi tidak valid.' };
+  if (role === 'Siswa') return { success: false, message: 'Akses ditolak.' };
+  if (!responseIds || responseIds.length === 0)
+    return { success: false, message: 'Tidak ada data dipilih.' };
+ 
+  const rSheet = SS.getSheetByName('Responses');
+  const rData  = rSheet.getDataRange().getValues();
+  const idsSet = new Set(responseIds.map(String));
+ 
+  const rowsToDelete = [];
+  for (let i = 1; i < rData.length; i++) {
+    if (idsSet.has(String(rData[i][0]))) rowsToDelete.push(i + 1);
+  }
+  rowsToDelete.sort((a, b) => b - a);
+  rowsToDelete.forEach(r => rSheet.deleteRow(r));
+ 
+  SpreadsheetApp.flush();
+  return {
+    success: true,
+    message: `${rowsToDelete.length} data ujian berhasil di-reset. Siswa dapat mengerjakan ulang.`,
+    count:   rowsToDelete.length
+  };
+}
+ 

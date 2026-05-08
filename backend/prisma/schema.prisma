@@ -1,0 +1,234 @@
+// This is your Prisma schema file
+// Learn more at https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// USERS
+// ==========================================
+model User {
+  id           String   @id @default(cuid()) @map("user_id")
+  userId       String   @unique @map("user_code") // e.g. ADM-001, SIS-001
+  nama         String
+  password     String   // bcrypt hashed
+  role         Role
+  kelas        String?  // Untuk siswa: nama kelas. Guru: "Matematika:XII-RPL,Fisika:XI-IPA"
+  isActive         Boolean  @default(true) @map("is_active")
+  displayPassword  String?  @map("display_password") // plain password for student card printing
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  sessions     Session[]
+  responses    Response[]
+  logs         ExamLog[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// ==========================================
+// UJIAN (EXAMS)
+// ==========================================
+model Exam {
+  id            String      @id @default(cuid()) @map("exam_id")
+  examCode      String      @unique @map("exam_code") // e.g. EXM-001
+  subject       String      @map("mata_pelajaran")
+  kelas         String
+  date          DateTime    @map("tanggal_mulai")
+  endDate       DateTime?   @map("tanggal_selesai")
+  duration      Int         // menit
+  pin           String?
+  status        ExamStatus  @default(Draft)
+  shuffleConfig Json?       @map("shuffle_config") // {"questions": true, "options": true}
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  questions     Question[]
+  responses     Response[]
+  logs          ExamLog[]
+
+  @@map("exams")
+}
+
+// ==========================================
+// SOAL (QUESTIONS)
+// ==========================================
+model Question {
+  id            String       @id @default(cuid()) @map("question_id")
+  questionCode  String       @unique @map("question_code") // e.g. Q-001
+  examId        String       @map("exam_id")
+  type          QuestionType
+  content       String       // Teks soal (HTML allowed)
+  imageUrl      String?      @map("image_url")
+  options       Json         // Array untuk PG/BS/JODOH, [] untuk Esai
+  correctAnswer Json?        @map("correct_answer") // String PG, JSON object untuk BS/JODOH
+  isRequired    Boolean      @default(true) @map("is_required")
+  bobot         Float        @default(1.0)           // Bobot nilai soal ini
+  order         Int          @default(0)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  exam          Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@map("questions")
+}
+
+// ==========================================
+// JAWABAN (RESPONSES)
+// ==========================================
+model Response {
+  id          String         @id @default(cuid()) @map("response_id")
+  userId      String         @map("user_id")
+  examId      String         @map("exam_id")
+  answersJson Json           @map("answers_json") // {"questionId": "jawaban", ...}
+  score       Float?
+  startTime   DateTime?      @map("start_time")
+  submitTime  DateTime?      @map("submit_time")
+  status      ResponseStatus @default(InProgress)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exam        Exam           @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, examId])
+  @@map("responses")
+}
+
+// ==========================================
+// LOG PELANGGARAN
+// ==========================================
+model ExamLog {
+  id              String   @id @default(cuid()) @map("log_id")
+  userId          String   @map("user_id")
+  examId          String   @map("exam_id")
+  violationCount  Int      @default(0) @map("violation_count")
+  details         Json?    // Array of violation events
+  timestamp       DateTime @default(now())
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exam            Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@map("exam_logs")
+}
+
+// ==========================================
+// KONFIGURASI APLIKASI
+// ==========================================
+model Config {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("configs")
+}
+
+// ==========================================
+// MASTER DATA
+// ==========================================
+model Kelas {
+  id    String @id @default(cuid())
+  nama  String @unique
+
+  @@map("kelas")
+}
+
+model Mapel {
+  id    String @id @default(cuid())
+  nama  String @unique
+
+  @@map("mapel")
+}
+
+// ==========================================
+// IP WHITELIST MANAGEMENT
+// ==========================================
+model IpWhitelist {
+  id          String   @id @default(cuid())
+  ipAddress   String   @map("ip_address")
+  label       String?  // Deskripsi: "Lab Komputer A", "Ruang Guru"
+  targetRole  String?  @map("target_role") // null = semua, "Siswa", "Guru", "Admin"
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdBy   String?  @map("created_by")
+
+  @@unique([ipAddress, targetRole])
+  @@map("ip_whitelist")
+}
+
+model IpAccessLog {
+  id         String   @id @default(cuid())
+  ipAddress  String   @map("ip_address")
+  path       String
+  method     String
+  statusCode Int      @map("status_code")
+  userId     String?  @map("user_id")
+  timestamp  DateTime @default(now())
+
+  @@map("ip_access_logs")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+enum Role {
+  Admin
+  Guru
+  Siswa
+}
+
+enum ExamStatus {
+  Draft
+  Aktif
+  Selesai
+  Diarsipkan
+}
+
+enum QuestionType {
+  PG           // Pilihan Ganda (single select)
+  PG_KOMPLEKS  // Pilihan Ganda Kompleks (multiple select)
+  BS           // Benar/Salah AKM
+  JODOH        // Menjodohkan
+  Esai         // Esai bebas
+}
+
+enum ResponseStatus {
+  InProgress
+  Submitted
+  Graded
+}
+
+
+// ==========================================
+// IMAGE LIBRARY
+// ==========================================
+model Image {
+  id        String   @id @default(cuid())
+  name      String
+  url       String   @unique
+  category  String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("images")
+}
