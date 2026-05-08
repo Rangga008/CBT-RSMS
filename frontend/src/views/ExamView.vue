@@ -53,15 +53,32 @@
 						@click="cycleFontSize"
 						title="Ubah ukuran teks"
 						class="bg-white/20 text-white px-2 py-1.5 rounded-lg text-xs font-bold hover:bg-white/30 transition flex-shrink-0 hidden sm:block"
-					>A{{ fontSize === 'sm' ? '+' : fontSize === 'lg' ? '-' : '±' }}</button>
+					>
+						A{{ fontSize === "sm" ? "+" : fontSize === "lg" ? "-" : "±" }}
+					</button>
 					<!-- Dark Mode Toggle -->
 					<button
 						@click="toggleDark"
 						title="Mode gelap"
 						class="bg-white/20 text-white p-1.5 rounded-lg hover:bg-white/30 transition flex-shrink-0"
 					>
-						<svg v-if="isDark" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.166 17.834a.75.75 0 00-1.06 1.06l1.59 1.591a.75.75 0 001.061-1.06l-1.59-1.591zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.166 5.106a.75.75 0 00-1.061 1.06l1.591 1.591a.75.75 0 001.06-1.06l-1.59-1.59z"/></svg>
-						<svg v-else class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z" clip-rule="evenodd"/></svg>
+						<svg
+							v-if="isDark"
+							class="w-4 h-4"
+							viewBox="0 0 24 24"
+							fill="currentColor"
+						>
+							<path
+								d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.166 17.834a.75.75 0 00-1.06 1.06l1.59 1.591a.75.75 0 001.061-1.06l-1.59-1.591zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.166 5.106a.75.75 0 00-1.061 1.06l1.591 1.591a.75.75 0 001.06-1.06l-1.59-1.59z"
+							/>
+						</svg>
+						<svg v-else class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+							<path
+								fill-rule="evenodd"
+								d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z"
+								clip-rule="evenodd"
+							/>
+						</svg>
 					</button>
 					<!-- Submit Button -->
 					<button
@@ -374,10 +391,24 @@
 						@click="showNavPopup = true"
 						class="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-xl font-semibold text-sm"
 					>
-						<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+						<svg
+							class="w-4 h-4"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+							/>
+						</svg>
 						Soal {{ currentIndex + 1 }}/{{ questions.length }}
 					</button>
-					<span class="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-3 py-2 rounded-xl whitespace-nowrap">
+					<span
+						class="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-3 py-2 rounded-xl whitespace-nowrap"
+					>
 						{{ answeredCount }}/{{ questions.length }} dijawab
 					</span>
 				</div>
@@ -390,29 +421,69 @@
 					class="lg:hidden fixed inset-0 z-50 flex flex-col justify-end"
 					@click.self="showNavPopup = false"
 				>
-					<div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showNavPopup = false"></div>
-					<div class="relative bg-white dark:bg-slate-800 rounded-t-2xl p-4 shadow-2xl max-h-[70vh] flex flex-col">
+					<div
+						class="absolute inset-0 bg-black/40 backdrop-blur-sm"
+						@click="showNavPopup = false"
+					></div>
+					<div
+						class="relative bg-white dark:bg-slate-800 rounded-t-2xl p-4 shadow-2xl max-h-[70vh] flex flex-col"
+					>
 						<div class="flex items-center justify-between mb-3">
-							<h3 class="font-semibold text-slate-700 dark:text-slate-200">Navigasi Soal</h3>
-							<button @click="showNavPopup = false" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400">
-								<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+							<h3 class="font-semibold text-slate-700 dark:text-slate-200">
+								Navigasi Soal
+							</h3>
+							<button
+								@click="showNavPopup = false"
+								class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400"
+							>
+								<svg
+									class="w-4 h-4"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="M6 18L18 6M6 6l12 12"
+									/>
+								</svg>
 							</button>
 						</div>
 						<div class="grid grid-cols-7 gap-1.5 overflow-y-auto flex-1">
 							<button
 								v-for="(q, i) in questions"
 								:key="q.id"
-								@click="currentIndex = i; showNavPopup = false"
+								@click="
+									currentIndex = i;
+									showNavPopup = false;
+								"
 								class="w-9 h-9 text-xs font-medium rounded-lg border transition-colors"
 								:class="navButtonClass(i, q)"
 							>
 								{{ i + 1 }}
 							</button>
 						</div>
-						<div class="flex gap-4 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400">
-							<div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-blue-600 inline-block"></span> Aktif</div>
-							<div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-green-100 border border-green-300 inline-block"></span> Dijawab</div>
-							<div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-slate-100 border border-slate-200 inline-block dark:bg-slate-700 dark:border-slate-600"></span> Belum</div>
+						<div
+							class="flex gap-4 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400"
+						>
+							<div class="flex items-center gap-1.5">
+								<span class="w-3 h-3 rounded bg-blue-600 inline-block"></span>
+								Aktif
+							</div>
+							<div class="flex items-center gap-1.5">
+								<span
+									class="w-3 h-3 rounded bg-green-100 border border-green-300 inline-block"
+								></span>
+								Dijawab
+							</div>
+							<div class="flex items-center gap-1.5">
+								<span
+									class="w-3 h-3 rounded bg-slate-100 border border-slate-200 inline-block dark:bg-slate-700 dark:border-slate-600"
+								></span>
+								Belum
+							</div>
 						</div>
 					</div>
 				</div>
@@ -504,7 +575,11 @@ const showNavPopup = ref(false);
 
 // Font size
 const fontSize = ref(localStorage.getItem("cbt_fontsize") || "md");
-const fontSizeClass = computed(() => ({ sm: "text-sm", md: "text-base", lg: "text-lg" })[fontSize.value] || "text-base");
+const fontSizeClass = computed(
+	() =>
+		({ sm: "text-sm", md: "text-base", lg: "text-lg" })[fontSize.value] ||
+		"text-base",
+);
 function cycleFontSize() {
 	const sizes = ["sm", "md", "lg"];
 	const idx = sizes.indexOf(fontSize.value);
@@ -697,7 +772,11 @@ async function submit() {
 	submitting.value = true;
 	const eid = examId.value || exam.value?.id;
 	if (!eid) {
-		Swal.fire({ icon: "error", title: "Gagal", text: "ID ujian tidak ditemukan." });
+		Swal.fire({
+			icon: "error",
+			title: "Gagal",
+			text: "ID ujian tidak ditemukan.",
+		});
 		submitting.value = false;
 		return;
 	}
@@ -823,10 +902,17 @@ onMounted(async () => {
 			qRes = await api.get(`/exams/${examId.value}/questions/exam-session`);
 		} catch (qErr) {
 			const msg = qErr.response?.data?.message || "";
-			if (qErr.response?.status === 400 && msg.includes("sudah menyelesaikan")) {
+			if (
+				qErr.response?.status === 400 &&
+				msg.includes("sudah menyelesaikan")
+			) {
 				// Sudah submit — arahkan ke halaman hasil
-				const histRes = await api.get("/responses/my").catch(() => ({ data: { data: [] } }));
-				const found = (histRes.data.data || []).find((r) => r.examId === examId.value);
+				const histRes = await api
+					.get("/responses/my")
+					.catch(() => ({ data: { data: [] } }));
+				const found = (histRes.data.data || []).find(
+					(r) => r.examId === examId.value,
+				);
 				if (found) {
 					router.replace(`/result/${found.id}`);
 				} else {

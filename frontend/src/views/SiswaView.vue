@@ -11,11 +11,18 @@
 					<div
 						class="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-blue-700 font-black text-xs shadow overflow-hidden"
 					>
-						<img v-if="appLogo" :src="appLogo" alt="logo" class="w-full h-full object-cover" />
+						<img
+							v-if="appLogo"
+							:src="appLogo"
+							alt="logo"
+							class="w-full h-full object-cover"
+						/>
 						<span v-else class="text-xs font-black">CBT</span>
 					</div>
 					<div>
-						<p class="text-white font-bold text-sm leading-tight">{{ appName }}</p>
+						<p class="text-white font-bold text-sm leading-tight">
+							{{ appName }}
+						</p>
 						<p class="text-white/40 text-xs">{{ appSubtitle }}</p>
 					</div>
 				</div>
@@ -26,8 +33,23 @@
 						title="Mode gelap"
 						class="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
 					>
-						<svg v-if="isDark" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.166 17.834a.75.75 0 00-1.06 1.06l1.59 1.591a.75.75 0 001.061-1.06l-1.59-1.591zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.166 5.106a.75.75 0 00-1.061 1.06l1.591 1.591a.75.75 0 001.06-1.06l-1.59-1.59z"/></svg>
-						<svg v-else class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z" clip-rule="evenodd"/></svg>
+						<svg
+							v-if="isDark"
+							class="w-4 h-4"
+							viewBox="0 0 24 24"
+							fill="currentColor"
+						>
+							<path
+								d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.166 17.834a.75.75 0 00-1.06 1.06l1.59 1.591a.75.75 0 001.061-1.06l-1.59-1.591zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.166 5.106a.75.75 0 00-1.061 1.06l1.591 1.591a.75.75 0 001.06-1.06l-1.59-1.59z"
+							/>
+						</svg>
+						<svg v-else class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+							<path
+								fill-rule="evenodd"
+								d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z"
+								clip-rule="evenodd"
+							/>
+						</svg>
 					</button>
 					<div class="text-right hidden sm:block">
 						<p class="text-white text-sm font-semibold">
@@ -387,7 +409,8 @@
 
 		<!-- Footer -->
 		<footer class="py-4 text-center text-white/20 text-xs">
-			&copy; {{ new Date().getFullYear() }} {{ appName }} &mdash; {{ appSubtitle }}
+			&copy; {{ new Date().getFullYear() }} {{ appName }} &mdash;
+			{{ appSubtitle }}
 		</footer>
 
 		<!-- Pre-Exam Briefing Modal -->
@@ -397,25 +420,56 @@
 				class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
 				@click.self="closeBriefing"
 			>
-				<div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+				<div
+					class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+				>
 					<!-- Header -->
 					<div class="bg-blue-600 px-6 py-4 text-white">
-						<p class="text-xs font-semibold uppercase tracking-wider text-blue-200 mb-1">Persiapan Ujian</p>
-						<h2 class="text-lg font-bold leading-tight">{{ briefingExam.subject }}</h2>
+						<p
+							class="text-xs font-semibold uppercase tracking-wider text-blue-200 mb-1"
+						>
+							Persiapan Ujian
+						</p>
+						<h2 class="text-lg font-bold leading-tight">
+							{{ briefingExam.subject }}
+						</h2>
 						<div class="flex items-center gap-4 mt-2 text-sm text-blue-200">
 							<span>⏱ {{ briefingExam.duration }} menit</span>
 							<span>📚 {{ briefingExam.kelas }}</span>
 						</div>
 					</div>
 					<!-- Rules -->
-					<div class="px-6 py-5 space-y-3 text-sm text-slate-700 dark:text-slate-200">
-						<p class="font-semibold text-slate-900 dark:text-slate-100 mb-1">Peraturan Ujian:</p>
+					<div
+						class="px-6 py-5 space-y-3 text-sm text-slate-700 dark:text-slate-200"
+					>
+						<p class="font-semibold text-slate-900 dark:text-slate-100 mb-1">
+							Peraturan Ujian:
+						</p>
 						<ul class="space-y-2">
-							<li class="flex gap-2"><span class="text-blue-500 mt-0.5">•</span> Pastikan koneksi internet Anda stabil sebelum memulai.</li>
-							<li class="flex gap-2"><span class="text-orange-500 mt-0.5">•</span> <span><b>Jangan berpindah tab</b> atau meminimize browser — sistem akan mendeteksi dan mencatat pelanggaran.</span></li>
-							<li class="flex gap-2"><span class="text-red-500 mt-0.5">•</span> Setelah <b>{{ maxViolations }} pelanggaran</b>, ujian akan dikumpulkan secara otomatis.</li>
-							<li class="flex gap-2"><span class="text-green-500 mt-0.5">•</span> Jawaban Anda tersimpan otomatis setiap 15 detik.</li>
-							<li class="flex gap-2"><span class="text-slate-400 mt-0.5">•</span> Timer berjalan terus — ujian akan dikumpulkan otomatis saat waktu habis.</li>
+							<li class="flex gap-2">
+								<span class="text-blue-500 mt-0.5">•</span> Pastikan koneksi
+								internet Anda stabil sebelum memulai.
+							</li>
+							<li class="flex gap-2">
+								<span class="text-orange-500 mt-0.5">•</span>
+								<span
+									><b>Jangan berpindah tab</b> atau meminimize browser — sistem
+									akan mendeteksi dan mencatat pelanggaran.</span
+								>
+							</li>
+							<li class="flex gap-2">
+								<span class="text-red-500 mt-0.5">•</span> Setelah
+								<b>{{ maxViolations }} pelanggaran</b>, ujian akan dikumpulkan
+								secara otomatis.
+							</li>
+							<li class="flex gap-2">
+								<span class="text-green-500 mt-0.5">•</span> Jawaban Anda
+								tersimpan otomatis setiap 15 detik.
+							</li>
+							<li class="flex gap-2">
+								<span class="text-slate-400 mt-0.5">•</span> Timer berjalan
+								terus — ujian akan dikumpulkan otomatis saat waktu habis.
+							</li>
 						</ul>
 					</div>
 					<!-- Actions -->
@@ -430,7 +484,11 @@
 							@click="confirmStart"
 							class="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-500 transition-colors text-sm flex items-center justify-center gap-2"
 						>
-							<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"/></svg>
+							<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+								<path
+									d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"
+								/>
+							</svg>
 							Saya Siap, Mulai!
 						</button>
 					</div>
@@ -494,9 +552,13 @@ onMounted(async () => {
 		const cfg = cfgRes.data.data || {};
 		if (cfg.app_name) appName.value = cfg.app_name;
 		if (cfg.app_subtitle) appSubtitle.value = cfg.app_subtitle;
-		if (cfg.logo_url || cfg.app_logo) appLogo.value = cfg.logo_url || cfg.app_logo;
-		if (cfg.max_violations) maxViolations.value = parseInt(cfg.max_violations) || 2;
-	} catch { /* ignore */ }
+		if (cfg.logo_url || cfg.app_logo)
+			appLogo.value = cfg.logo_url || cfg.app_logo;
+		if (cfg.max_violations)
+			maxViolations.value = parseInt(cfg.max_violations) || 2;
+	} catch {
+		/* ignore */
+	}
 
 	// Jika ada PIN dari query string (dari login redirect)
 	const urlPin = new URLSearchParams(window.location.search).get("pin");

@@ -407,7 +407,8 @@ async function loadAppConfig() {
 		const cfg = res.data?.data || {};
 		if (cfg.app_name) appName.value = cfg.app_name;
 		if (cfg.app_subtitle) appSubtitle.value = cfg.app_subtitle;
-		if (cfg.logo_url || cfg.app_logo) appLogo.value = cfg.logo_url || cfg.app_logo;
+		if (cfg.logo_url || cfg.app_logo)
+			appLogo.value = cfg.logo_url || cfg.app_logo;
 	} catch {
 		// keep defaults
 	}
