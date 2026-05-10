@@ -1,12 +1,14 @@
 <template>
 	<div
-		class="min-h-screen bg-gradient-to-br from-indigo-900 via-blue-900 to-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 flex flex-col"
+		class="min-h-screen bg-gradient-to-br from-indigo-900 via-blue-900 to-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 flex flex-col overflow-x-hidden"
 	>
 		<!-- Header -->
 		<header
 			class="bg-white/5 backdrop-blur border-b border-white/10 px-4 py-3 sticky top-0 z-10"
 		>
-			<div class="max-w-2xl mx-auto flex items-center justify-between">
+			<div
+				class="max-w-2xl mx-auto flex items-center justify-between gap-2 min-w-0"
+			>
 				<div class="flex items-center gap-3">
 					<div
 						class="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-blue-700 font-black text-xs shadow overflow-hidden"
@@ -19,14 +21,18 @@
 						/>
 						<span v-else class="text-xs font-black">CBT</span>
 					</div>
-					<div>
+					<div class="min-w-0">
 						<p class="text-white font-bold text-sm leading-tight">
 							{{ appName }}
 						</p>
-						<p class="text-white/40 text-xs">{{ appSubtitle }}</p>
+						<p
+							class="text-white/40 text-xs truncate max-w-[150px] sm:max-w-none"
+						>
+							{{ appSubtitle }}
+						</p>
 					</div>
 				</div>
-				<div class="flex items-center gap-3">
+				<div class="flex items-center gap-2 shrink-0">
 					<!-- Dark Mode Toggle -->
 					<button
 						@click="toggleDark"
@@ -59,7 +65,7 @@
 					</div>
 					<button
 						@click="handleLogout"
-						class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white/60 hover:text-red-300 hover:bg-red-500/10 transition-colors text-sm"
+						class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-white/60 hover:text-red-300 hover:bg-red-500/10 transition-colors text-sm"
 					>
 						<svg
 							class="w-4 h-4"
@@ -74,7 +80,7 @@
 								d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"
 							/>
 						</svg>
-						<span>Keluar</span>
+						<span class="hidden sm:inline">Keluar</span>
 					</button>
 				</div>
 			</div>
@@ -115,19 +121,22 @@
 					<p class="text-slate-400 text-xs mb-4">
 						Minta PIN ujian dari guru atau pengawas Anda
 					</p>
-					<form @submit.prevent="joinByPin" class="flex gap-3">
+					<form
+						@submit.prevent="joinByPin"
+						class="flex flex-col sm:flex-row gap-3"
+					>
 						<input
 							v-model="pin"
 							type="text"
 							maxlength="20"
 							placeholder="Masukkan PIN ujian..."
-							class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-slate-800 text-sm transition-all"
+							class="w-full min-w-0 flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-slate-800 text-sm transition-all"
 							:disabled="loadingPin"
 						/>
 						<button
 							type="submit"
 							:disabled="!pin.trim() || loadingPin"
-							class="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-500 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+							class="w-full sm:w-auto px-5 py-2.5 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-500 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
 						>
 							<span v-if="loadingPin" class="flex items-center gap-1.5">
 								<svg
@@ -241,7 +250,9 @@
 							:key="exam.id"
 							class="p-4 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all group"
 						>
-							<div class="flex items-start justify-between gap-4">
+							<div
+								class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4"
+							>
 								<div class="min-w-0 flex-1">
 									<p class="font-semibold text-slate-700 text-sm">
 										{{ exam.subject }}
@@ -294,7 +305,7 @@
 								</div>
 								<button
 									@click="openBriefing(exam)"
-									class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm rounded-xl font-semibold hover:bg-blue-500 active:scale-95 transition-all"
+									class="w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm rounded-xl font-semibold hover:bg-blue-500 active:scale-95 transition-all"
 								>
 									<svg
 										class="w-3.5 h-3.5"
@@ -379,7 +390,7 @@
 						<div
 							v-for="resp in myResponses"
 							:key="resp.id"
-							class="p-4 rounded-xl border border-slate-100 flex items-center justify-between gap-4"
+							class="p-4 rounded-xl border border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4"
 						>
 							<div class="min-w-0 flex-1">
 								<p class="font-semibold text-slate-700 text-sm">
@@ -418,7 +429,7 @@
 							<router-link
 								v-if="showResultConfig && resp.status === 'Graded'"
 								:to="`/result/${resp.id}`"
-								class="flex-shrink-0 text-xs px-3 py-1.5 bg-violet-600 text-white rounded-lg font-semibold hover:bg-violet-500 transition-colors"
+								class="w-full sm:w-auto text-center flex-shrink-0 text-xs px-3 py-1.5 bg-violet-600 text-white rounded-lg font-semibold hover:bg-violet-500 transition-colors"
 							>
 								Lihat Hasil
 							</router-link>
@@ -429,7 +440,7 @@
 		</main>
 
 		<!-- Footer -->
-		<footer class="py-4 text-center text-white/20 text-xs">
+		<footer class="py-4 px-4 text-center text-white/20 text-xs break-words">
 			&copy; {{ new Date().getFullYear() }} {{ appName }} &mdash;
 			{{ appSubtitle }}
 		</footer>
@@ -500,7 +511,7 @@
 						</ul>
 					</div>
 					<!-- Actions -->
-					<div class="px-6 pb-5 flex gap-3">
+					<div class="px-6 pb-5 flex flex-col sm:flex-row gap-3">
 						<button
 							@click="closeBriefing"
 							class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm"

@@ -1,5 +1,7 @@
 <template>
-	<div class="min-h-screen bg-slate-100 dark:bg-slate-900 flex flex-col">
+	<div
+		class="min-h-screen bg-slate-100 dark:bg-slate-900 flex flex-col overflow-x-hidden"
+	>
 		<!-- Loading state -->
 		<div v-if="loading" class="flex-1 flex items-center justify-center">
 			<div class="text-center">
@@ -27,9 +29,9 @@
 			<!-- Header -->
 			<header class="exam-header sticky top-0 z-30">
 				<div
-					class="flex items-center justify-between max-w-6xl mx-auto px-4 py-3 gap-4"
+					class="flex items-center lg:items-center justify-between flex-wrap lg:flex-nowrap max-w-6xl mx-auto px-4 py-3 gap-2 sm:gap-3"
 				>
-					<div class="min-w-0">
+					<div class="min-w-0 flex-1">
 						<h1 class="text-white font-bold text-base truncate">
 							{{ exam.subject }}
 						</h1>
@@ -39,7 +41,7 @@
 					</div>
 					<!-- Timer -->
 					<div
-						class="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-xl flex-shrink-0"
+						class="flex items-center gap-2 bg-white/20 px-3 sm:px-4 py-2 rounded-xl flex-shrink-0 whitespace-nowrap"
 					>
 						<span class="text-white text-sm">⏱️</span>
 						<span
@@ -84,7 +86,7 @@
 					<button
 						@click="confirmSubmit"
 						:disabled="submitting"
-						class="bg-white text-blue-700 font-bold px-4 py-2 rounded-xl hover:bg-blue-50 transition-colors flex-shrink-0 text-sm shadow"
+						class="bg-white text-blue-700 font-bold px-3 sm:px-4 py-2 rounded-xl hover:bg-blue-50 transition-colors flex-shrink-0 text-sm shadow"
 					>
 						{{ submitting ? "..." : "Kumpulkan" }}
 					</button>
@@ -92,7 +94,7 @@
 			</header>
 
 			<!-- Main Content -->
-			<div class="flex-1 flex max-w-6xl mx-auto w-full gap-4 p-4">
+			<div class="flex-1 flex max-w-6xl mx-auto w-full gap-4 p-4 pb-20 lg:pb-4">
 				<!-- Question Navigation Sidebar -->
 				<aside class="hidden lg:block w-56 flex-shrink-0">
 					<div
@@ -151,7 +153,7 @@
 				<!-- Question Card -->
 				<main class="flex-1 min-w-0">
 					<div
-						class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6"
+						class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6"
 					>
 						<!-- Question Header -->
 						<div class="flex items-center gap-3 mb-4">
@@ -175,7 +177,7 @@
 							v-if="currentQuestion?.imageUrl"
 							:src="currentQuestion.imageUrl"
 							alt="Gambar soal"
-							class="max-w-sm rounded-xl border mb-6 shadow-sm"
+							class="w-full max-w-sm rounded-xl border mb-6 shadow-sm"
 							loading="lazy"
 						/>
 
@@ -242,9 +244,9 @@
 								<p class="text-slate-700 text-sm mb-3">
 									<b>{{ si + 1 }}.</b> {{ stmt }}
 								</p>
-								<div class="flex gap-3">
+								<div class="flex flex-wrap gap-2">
 									<label
-										class="flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg border transition-colors"
+										class="flex-1 min-w-[120px] flex items-center justify-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg border transition-colors"
 										:class="
 											getBS(si) === 'Benar'
 												? 'bg-green-100 border-green-400 text-green-700'
@@ -262,7 +264,7 @@
 										✓ Benar
 									</label>
 									<label
-										class="flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg border transition-colors"
+										class="flex-1 min-w-[120px] flex items-center justify-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg border transition-colors"
 										:class="
 											getBS(si) === 'Salah'
 												? 'bg-red-100 border-red-400 text-red-700'
@@ -290,7 +292,7 @@
 							</p>
 							<div class="overflow-hidden rounded-xl border border-slate-200">
 								<div
-									class="grid grid-cols-2 bg-slate-50 border-b border-slate-200"
+									class="grid grid-cols-1 sm:grid-cols-2 bg-slate-50 border-b border-slate-200"
 								>
 									<div
 										class="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider"
@@ -306,10 +308,10 @@
 								<div
 									v-for="pair in currentQuestion.options.filter((p) => p.q)"
 									:key="pair.q"
-									class="grid grid-cols-2 border-b border-slate-100 last:border-b-0"
+									class="grid grid-cols-1 sm:grid-cols-2 border-b border-slate-100 last:border-b-0"
 								>
 									<div
-										class="px-4 py-3 flex items-center border-r border-slate-100"
+										class="px-4 py-3 flex items-center sm:border-r border-slate-100"
 									>
 										<span class="text-slate-800 text-sm">{{ pair.q }}</span>
 									</div>
@@ -349,7 +351,9 @@
 						</div>
 
 						<!-- Navigation Buttons -->
-						<div class="flex justify-between mt-8">
+						<div
+							class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 mt-8"
+						>
 							<button
 								@click="currentIndex--"
 								:disabled="currentIndex === 0"
@@ -407,7 +411,7 @@
 						Soal {{ currentIndex + 1 }}/{{ questions.length }}
 					</button>
 					<span
-						class="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-3 py-2 rounded-xl whitespace-nowrap"
+						class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 sm:px-3 py-2 rounded-xl"
 					>
 						{{ answeredCount }}/{{ questions.length }} dijawab
 					</span>
@@ -466,7 +470,7 @@
 							</button>
 						</div>
 						<div
-							class="flex gap-4 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400"
+							class="flex flex-wrap gap-3 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400"
 						>
 							<div class="flex items-center gap-1.5">
 								<span class="w-3 h-3 rounded bg-blue-600 inline-block"></span>

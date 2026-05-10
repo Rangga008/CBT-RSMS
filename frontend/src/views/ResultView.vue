@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="min-h-screen bg-gradient-to-br from-slate-100 to-blue-50 flex items-start justify-center p-4 pt-10"
+		class="min-h-screen bg-gradient-to-br from-slate-100 to-blue-50 flex items-start justify-center p-3 sm:p-4 pt-8 sm:pt-10 overflow-x-hidden"
 	>
 		<div class="w-full max-w-3xl">
 			<!-- Loading -->
@@ -127,7 +127,9 @@
 						</div>
 
 						<!-- Meta -->
-						<div class="mt-6 grid grid-cols-3 gap-3 text-sm text-slate-500">
+						<div
+							class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-slate-500"
+						>
 							<div class="bg-slate-50 rounded-xl p-3">
 								<p class="font-semibold text-slate-700 text-xs mb-1">Mulai</p>
 								<p class="text-xs">{{ fmtDate(result.startTime) }}</p>
@@ -149,7 +151,7 @@
 						class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden fade-in"
 					>
 						<div
-							class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between"
+							class="px-4 sm:px-6 py-4 border-b border-slate-100 bg-slate-50 flex flex-wrap items-center justify-between gap-2"
 						>
 							<h2 class="font-bold text-slate-700 text-sm">
 								Detail Jawaban Per Soal
@@ -244,7 +246,7 @@
 					</div>
 
 					<!-- Actions -->
-					<div class="flex gap-3 justify-center">
+					<div class="flex flex-col sm:flex-row gap-3 justify-center">
 						<router-link
 							to="/siswa"
 							class="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-500 transition-colors shadow-md"
