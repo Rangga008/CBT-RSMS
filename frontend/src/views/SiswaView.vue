@@ -283,10 +283,7 @@
 											</svg>
 											{{ formatDateTime(exam.date) }}
 										</span>
-										<span
-											v-if="exam.endDate"
-											class="text-xs text-slate-400"
-										>
+										<span v-if="exam.endDate" class="text-xs text-slate-400">
 											Selesai: {{ formatDateTime(exam.endDate) }}
 										</span>
 										<span class="text-xs text-slate-400">{{ exam.kelas }}</span>
@@ -472,13 +469,17 @@
 						<ul class="space-y-2">
 							<li class="flex gap-2">
 								<span class="text-blue-500 mt-0.5">•</span> Pastikan koneksi
-								internet stabil dan perangkat tidak berpindah jaringan selama ujian.
+								internet stabil dan perangkat tidak berpindah jaringan selama
+								ujian.
 							</li>
 							<li class="flex gap-2">
 								<span class="text-orange-500 mt-0.5">•</span>
 								<span
-									><b>Dilarang berpindah tab, membuka aplikasi lain, atau
-									meminimize browser</b> saat ujian berlangsung.</span
+									><b
+										>Dilarang berpindah tab, membuka aplikasi lain, atau
+										meminimize browser</b
+									>
+									saat ujian berlangsung.</span
 								>
 							</li>
 							<li class="flex gap-2">
@@ -493,8 +494,8 @@
 							</li>
 							<li class="flex gap-2">
 								<span class="text-slate-400 mt-0.5">•</span> Waktu ujian terus
-								berjalan. Saat waktu habis, sistem otomatis mengumpulkan
-								jawaban Anda.
+								berjalan. Saat waktu habis, sistem otomatis mengumpulkan jawaban
+								Anda.
 							</li>
 						</ul>
 					</div>

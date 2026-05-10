@@ -9,10 +9,7 @@
 			class="absolute inset-0 bg-gradient-to-br from-indigo-900 via-blue-900 to-slate-800 z-0"
 		></div>
 		<!-- Overlay: lighter if bg image exists -->
-		<div
-			v-if="hasBgImage"
-			class="absolute inset-0 bg-black/40 z-0"
-		></div>
+		<div v-if="hasBgImage" class="absolute inset-0 bg-black/40 z-0"></div>
 		<!-- Decorative circles -->
 		<div
 			class="absolute top-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 z-0"
@@ -267,7 +264,9 @@ const bgImageUrl = computed(
 	() => config.value.background_url || config.value.app_background || "",
 );
 const bgImageLoadFailed = ref(false);
-const hasBgImage = computed(() => !!bgImageUrl.value && !bgImageLoadFailed.value);
+const hasBgImage = computed(
+	() => !!bgImageUrl.value && !bgImageLoadFailed.value,
+);
 
 watch(
 	bgImageUrl,
