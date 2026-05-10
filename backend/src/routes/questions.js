@@ -44,10 +44,57 @@ export default async function questionsRoutes(fastify) {
 		{ preHandler: fastify.authenticate },
 		async (request, reply) => {
 			const user = request.user;
+			const now = new Date();
 			if (user.role === "Admin" || user.role === "Guru") {
 				return reply
 					.code(403)
 					.send({ success: false, message: "Endpoint ini hanya untuk siswa." });
+			}
+
+			const exam = await prisma.exam.findUnique({
+				where: { id: request.params.examId },
+				select: {
+					id: true,
+					kelas: true,
+					status: true,
+					date: true,
+					endDate: true,
+					shuffleConfig: true,
+				},
+			});
+
+			if (!exam) {
+				return reply
+					.code(404)
+					.send({ success: false, message: "Ujian tidak ditemukan." });
+			}
+
+			if (!(exam.kelas || "").includes(user.kelas || "")) {
+				return reply.code(403).send({
+					success: false,
+					message: "Ujian ini bukan untuk kelas Anda.",
+				});
+			}
+
+			if (exam.status !== "Aktif") {
+				return reply.code(400).send({
+					success: false,
+					message: "Ujian belum aktif atau sudah ditutup.",
+				});
+			}
+
+			if (now < new Date(exam.date)) {
+				return reply.code(400).send({
+					success: false,
+					message: "Ujian belum dimulai.",
+				});
+			}
+
+			if (exam.endDate && now > new Date(exam.endDate)) {
+				return reply.code(400).send({
+					success: false,
+					message: "Waktu ujian telah berakhir.",
+				});
 			}
 
 			// Cek apakah siswa sudah selesai ujian ini
@@ -62,11 +109,6 @@ export default async function questionsRoutes(fastify) {
 				});
 			}
 
-			// Ambil konfigurasi shuffle
-			const exam = await prisma.exam.findUnique({
-				where: { id: request.params.examId },
-				select: { shuffleConfig: true },
-			});
 			const shuffleCfg = exam?.shuffleConfig || {};
 
 			const rawQuestions = await prisma.question.findMany({

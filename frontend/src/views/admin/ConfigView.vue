@@ -355,6 +355,13 @@ async function save() {
 		const payload = Object.fromEntries(
 			Object.entries(cfg.value).map(([k, v]) => [k, String(v ?? "")]),
 		);
+		// Keep old/new config keys consistent in database.
+		if (Object.prototype.hasOwnProperty.call(payload, "background_url")) {
+			payload.app_background = payload.background_url;
+		}
+		if (Object.prototype.hasOwnProperty.call(payload, "logo_url")) {
+			payload.app_logo = payload.logo_url;
+		}
 		await api.patch("/config", payload);
 		// Apply title and favicon immediately
 		if (cfg.value.app_name) document.title = cfg.value.app_name;

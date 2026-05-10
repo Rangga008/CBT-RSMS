@@ -5,11 +5,12 @@
 	>
 		<!-- Background fallback gradient when no image -->
 		<div
+			v-if="!hasBgImage"
 			class="absolute inset-0 bg-gradient-to-br from-indigo-900 via-blue-900 to-slate-800 z-0"
 		></div>
 		<!-- Overlay: lighter if bg image exists -->
 		<div
-			v-if="config.background_url"
+			v-if="hasBgImage"
 			class="absolute inset-0 bg-black/40 z-0"
 		></div>
 		<!-- Decorative circles -->
@@ -245,7 +246,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.js";
 import api from "@/services/api.js";
@@ -262,10 +263,34 @@ const errorMsg = ref("");
 
 const form = ref({ userId: "", password: "", pin: "" });
 
+const bgImageUrl = computed(
+	() => config.value.background_url || config.value.app_background || "",
+);
+const bgImageLoadFailed = ref(false);
+const hasBgImage = computed(() => !!bgImageUrl.value && !bgImageLoadFailed.value);
+
+watch(
+	bgImageUrl,
+	(newUrl) => {
+		bgImageLoadFailed.value = false;
+		if (!newUrl) return;
+
+		const img = new Image();
+		img.onload = () => {
+			bgImageLoadFailed.value = false;
+		};
+		img.onerror = () => {
+			bgImageLoadFailed.value = true;
+		};
+		img.src = newUrl;
+	},
+	{ immediate: true },
+);
+
 const bgStyle = computed(() => {
-	if (config.value.background_url) {
+	if (hasBgImage.value) {
 		return {
-			backgroundImage: `url(${config.value.background_url})`,
+			backgroundImage: `url(${bgImageUrl.value})`,
 			backgroundSize: "cover",
 			backgroundPosition: "center",
 		};
@@ -304,20 +329,10 @@ async function handleLogin() {
 		await auth.login(form.value.userId, form.value.password);
 		const role = auth.user?.role;
 		if (role === "Siswa") {
-			// Jika ada PIN, langsung validate dan masuk ujian
+			// Jika ada PIN, arahkan ke /siswa agar tetap lewat briefing/peraturan.
 			if (form.value.pin && form.value.pin.trim()) {
-				try {
-					const res = await api.post("/exams/validate-pin", {
-						pin: form.value.pin.trim(),
-					});
-					const exam = res.data.data;
-					if (!res.data.viewResultsOnly) {
-						router.push(`/exam/${exam.id}`);
-						return;
-					}
-				} catch (pinErr) {
-					// PIN gagal, lanjut ke halaman siswa dengan PIN di field
-				}
+				router.push(`/siswa?pin=${encodeURIComponent(form.value.pin.trim())}`);
+				return;
 			}
 			router.push("/siswa");
 		} else {

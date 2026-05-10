@@ -265,6 +265,30 @@
 											</svg>
 											{{ exam.duration }} menit
 										</span>
+										<span
+											class="text-xs text-slate-400 flex items-center gap-1"
+										>
+											<svg
+												class="w-3 h-3"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+											>
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													d="M8.25 6.75V3m7.5 3.75V3M3.75 9.75h16.5M6 21h12a2.25 2.25 0 002.25-2.25V7.5A2.25 2.25 0 0018 5.25H6A2.25 2.25 0 003.75 7.5v11.25A2.25 2.25 0 006 21z"
+												/>
+											</svg>
+											{{ formatDateTime(exam.date) }}
+										</span>
+										<span
+											v-if="exam.endDate"
+											class="text-xs text-slate-400"
+										>
+											Selesai: {{ formatDateTime(exam.endDate) }}
+										</span>
 										<span class="text-xs text-slate-400">{{ exam.kelas }}</span>
 										<span class="badge bg-emerald-100 text-emerald-700"
 											>Aktif</span
@@ -448,27 +472,29 @@
 						<ul class="space-y-2">
 							<li class="flex gap-2">
 								<span class="text-blue-500 mt-0.5">•</span> Pastikan koneksi
-								internet Anda stabil sebelum memulai.
+								internet stabil dan perangkat tidak berpindah jaringan selama ujian.
 							</li>
 							<li class="flex gap-2">
 								<span class="text-orange-500 mt-0.5">•</span>
 								<span
-									><b>Jangan berpindah tab</b> atau meminimize browser — sistem
-									akan mendeteksi dan mencatat pelanggaran.</span
+									><b>Dilarang berpindah tab, membuka aplikasi lain, atau
+									meminimize browser</b> saat ujian berlangsung.</span
 								>
 							</li>
 							<li class="flex gap-2">
-								<span class="text-red-500 mt-0.5">•</span> Setelah
-								<b>{{ maxViolations }} pelanggaran</b>, ujian akan dikumpulkan
-								secara otomatis.
+								<span class="text-red-500 mt-0.5">•</span> Jika terjadi
+								<b>{{ maxViolations }} kali pelanggaran</b>, ujian langsung
+								ditutup dan jawaban dikumpulkan otomatis.
 							</li>
 							<li class="flex gap-2">
-								<span class="text-green-500 mt-0.5">•</span> Jawaban Anda
-								tersimpan otomatis setiap 15 detik.
+								<span class="text-green-500 mt-0.5">•</span> Jawaban disimpan
+								automatis setiap 15 detik, namun tetap cek kembali sebelum
+								mengumpulkan.
 							</li>
 							<li class="flex gap-2">
-								<span class="text-slate-400 mt-0.5">•</span> Timer berjalan
-								terus — ujian akan dikumpulkan otomatis saat waktu habis.
+								<span class="text-slate-400 mt-0.5">•</span> Waktu ujian terus
+								berjalan. Saat waktu habis, sistem otomatis mengumpulkan
+								jawaban Anda.
 							</li>
 						</ul>
 					</div>
@@ -538,6 +564,19 @@ function confirmStart() {
 	const id = briefingExam.value.id;
 	closeBriefing();
 	router.push(`/exam/${id}`);
+}
+
+function formatDateTime(v) {
+	if (!v) return "-";
+	const d = new Date(v);
+	if (Number.isNaN(d.getTime())) return "-";
+	return d.toLocaleString("id-ID", {
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+		hour: "2-digit",
+		minute: "2-digit",
+	});
 }
 
 // Riwayat ujian
@@ -626,7 +665,7 @@ async function joinByPin() {
 			}
 			return;
 		}
-		router.push(`/exam/${exam.id}`);
+		openBriefing(exam);
 	} catch (err) {
 		const msg =
 			err.response?.data?.message || "PIN tidak valid atau tidak ditemukan.";

@@ -7,13 +7,16 @@ export default async function configRoutes(fastify) {
 	fastify.get("/config", async (request, reply) => {
 		const configs = await prisma.config.findMany();
 		const data = Object.fromEntries(configs.map((c) => [c.key, c.value]));
+		const has = (k) => Object.prototype.hasOwnProperty.call(data, k);
 
 		// Backward compatibility: unify old/new key names.
-		if (!data.logo_url && data.app_logo) data.logo_url = data.app_logo;
-		if (!data.background_url && data.app_background)
+		// Important: only fallback when key is truly missing (undefined),
+		// not when user intentionally sets empty string.
+		if (!has("logo_url") && has("app_logo")) data.logo_url = data.app_logo;
+		if (!has("background_url") && has("app_background"))
 			data.background_url = data.app_background;
-		if (!data.app_logo && data.logo_url) data.app_logo = data.logo_url;
-		if (!data.app_background && data.background_url)
+		if (!has("app_logo") && has("logo_url")) data.app_logo = data.logo_url;
+		if (!has("app_background") && has("background_url"))
 			data.app_background = data.background_url;
 
 		return reply.send({ success: true, data });
@@ -30,7 +33,18 @@ export default async function configRoutes(fastify) {
 					.code(400)
 					.send({ success: false, message: "Format tidak valid." });
 
-			const ops = Object.entries(updates.data).map(([key, value]) =>
+			const payload = { ...updates.data };
+
+			// Keep legacy/new keys in sync so cleared values stay cleared
+			// and old seeded keys don't repopulate after refresh.
+			if (Object.prototype.hasOwnProperty.call(payload, "background_url")) {
+				payload.app_background = payload.background_url;
+			}
+			if (Object.prototype.hasOwnProperty.call(payload, "logo_url")) {
+				payload.app_logo = payload.logo_url;
+			}
+
+			const ops = Object.entries(payload).map(([key, value]) =>
 				prisma.config.upsert({
 					where: { key },
 					update: { value },

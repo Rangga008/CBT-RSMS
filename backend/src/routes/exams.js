@@ -30,6 +30,7 @@ export default async function examsRoutes(fastify) {
 			const { status, kelas, search, page = 1, limit = 20 } = request.query;
 			const user = request.user;
 			const skip = (Number(page) - 1) * Number(limit);
+			const now = new Date();
 
 			// Guru hanya lihat ujian milik kelas yg diajar
 			let kelasFilter = kelas ? { contains: kelas } : undefined;
@@ -47,6 +48,13 @@ export default async function examsRoutes(fastify) {
 				...(kelasFilter && { kelas: kelasFilter }),
 				...(search && { subject: { contains: search, mode: "insensitive" } }),
 			};
+
+			// Siswa hanya boleh melihat ujian yang sedang aktif pada rentang waktunya.
+			if (user.role === "Siswa") {
+				where.status = "Aktif";
+				where.date = { lte: now };
+				where.OR = [{ endDate: null }, { endDate: { gte: now } }];
+			}
 
 			const [exams, total] = await Promise.all([
 				prisma.exam.findMany({
@@ -104,6 +112,7 @@ export default async function examsRoutes(fastify) {
 		"/exams/:id",
 		{ preHandler: fastify.authenticate },
 		async (request, reply) => {
+			const user = request.user;
 			const exam = await prisma.exam.findUnique({
 				where: { id: request.params.id },
 				include: { _count: { select: { questions: true, responses: true } } },
@@ -112,6 +121,25 @@ export default async function examsRoutes(fastify) {
 				return reply
 					.code(404)
 					.send({ success: false, message: "Ujian tidak ditemukan." });
+
+			if (user.role === "Siswa") {
+				const now = new Date();
+				if (exam.status !== "Aktif") {
+					return reply
+						.code(400)
+						.send({ success: false, message: "Ujian belum aktif." });
+				}
+				if (now < new Date(exam.date)) {
+					return reply
+						.code(400)
+						.send({ success: false, message: "Ujian belum dimulai." });
+				}
+				if (exam.endDate && now > new Date(exam.endDate)) {
+					return reply
+						.code(400)
+						.send({ success: false, message: "Waktu ujian telah berakhir." });
+				}
+			}
 			return reply.send({ success: true, data: exam });
 		},
 	);
@@ -160,7 +188,10 @@ export default async function examsRoutes(fastify) {
 			const now = new Date();
 
 			const exam = await prisma.exam.findFirst({
-				where: { pin, kelas: { contains: user.kelas } },
+				where: {
+					pin,
+					kelas: { contains: user.kelas || "" },
+				},
 				select: {
 					id: true,
 					examCode: true,
