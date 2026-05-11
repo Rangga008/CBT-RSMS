@@ -952,7 +952,7 @@ onMounted(async () => {
 		// Set timer based on actual elapsed time
 		const timing = qRes.data.data?.timing || {};
 		const totalDurationSeconds = (exam.value.duration || 90) * 60;
-	
+
 		if (timing.examStartTime && timing.serverTimestamp) {
 			// Calculate elapsed time from server
 			const elapsedMs = timing.serverTimestamp - timing.examStartTime;

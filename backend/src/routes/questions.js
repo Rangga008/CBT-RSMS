@@ -108,7 +108,7 @@ export default async function questionsRoutes(fastify) {
 					message: "Anda sudah menyelesaikan ujian ini.",
 				});
 			}
-	
+
 			// Jika belum ada Response, buat sekarang dengan startTime
 			if (!existing) {
 				existing = await prisma.response.create({
@@ -166,14 +166,17 @@ export default async function questionsRoutes(fastify) {
 			// Kirim juga savedAnswers + timing info untuk resume
 			const savedAnswers = existing?.answersJson || {};
 			const serverNow = new Date();
-		
+
 			// Jika ada existing response, kirim startTime untuk recalculate timer
 			const timing = {
 				serverTimestamp: serverNow.getTime(),
 				examStartTime: existing?.startTime?.getTime() || null,
 			};
 
-			return reply.send({ success: true, data: { questions, savedAnswers, timing } });
+			return reply.send({
+				success: true,
+				data: { questions, savedAnswers, timing },
+			});
 		},
 	);
 
