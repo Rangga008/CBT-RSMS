@@ -949,8 +949,19 @@ onMounted(async () => {
 		// Render MathJax formulas
 		typesetMath();
 
-		// Set timer
-		timeLeft.value = (exam.value.duration || 90) * 60;
+		// Set timer based on actual elapsed time
+		const timing = qRes.data.data?.timing || {};
+		const totalDurationSeconds = (exam.value.duration || 90) * 60;
+	
+		if (timing.examStartTime && timing.serverTimestamp) {
+			// Calculate elapsed time from server
+			const elapsedMs = timing.serverTimestamp - timing.examStartTime;
+			const elapsedSeconds = Math.floor(elapsedMs / 1000);
+			timeLeft.value = Math.max(0, totalDurationSeconds - elapsedSeconds);
+		} else {
+			// First time — use full duration
+			timeLeft.value = totalDurationSeconds;
+		}
 
 		startTimer();
 		syncInterval = setInterval(syncAnswers, 15000);

@@ -98,7 +98,7 @@ export default async function questionsRoutes(fastify) {
 			}
 
 			// Cek apakah siswa sudah selesai ujian ini
-			const existing = await prisma.response.findFirst({
+			let existing = await prisma.response.findFirst({
 				where: { userId: user.id, examId: request.params.examId },
 			});
 
@@ -106,6 +106,19 @@ export default async function questionsRoutes(fastify) {
 				return reply.code(400).send({
 					success: false,
 					message: "Anda sudah menyelesaikan ujian ini.",
+				});
+			}
+	
+			// Jika belum ada Response, buat sekarang dengan startTime
+			if (!existing) {
+				existing = await prisma.response.create({
+					data: {
+						userId: user.id,
+						examId: request.params.examId,
+						answersJson: {},
+						startTime: new Date(),
+						status: "InProgress",
+					},
 				});
 			}
 
@@ -150,10 +163,17 @@ export default async function questionsRoutes(fastify) {
 				return safe;
 			});
 
-			// Kirim juga savedAnswers untuk resume
+			// Kirim juga savedAnswers + timing info untuk resume
 			const savedAnswers = existing?.answersJson || {};
+			const serverNow = new Date();
+		
+			// Jika ada existing response, kirim startTime untuk recalculate timer
+			const timing = {
+				serverTimestamp: serverNow.getTime(),
+				examStartTime: existing?.startTime?.getTime() || null,
+			};
 
-			return reply.send({ success: true, data: { questions, savedAnswers } });
+			return reply.send({ success: true, data: { questions, savedAnswers, timing } });
 		},
 	);
 

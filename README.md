@@ -34,7 +34,7 @@ Aplikasi web untuk manajemen ujian online yang modern, stabil, dan mudah digunak
 2. **Double-click** → Ikuti wizard (4 step)
 3. **Tunggu** ~10-15 menit instalasi
 4. **Buka browser**: `http://localhost:3000`
-5. **Login**: admin / admin123
+5. **Login**: ADM-001 / admin123
 
 **Selesai! ✅**
 

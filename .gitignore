@@ -9,6 +9,9 @@ node_modules/
 backend/.env
 frontend/.env
 
+installer
+launcher
+
 # Build output
 frontend/dist/
 backend/public/
