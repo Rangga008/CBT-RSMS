@@ -9,8 +9,11 @@ node_modules/
 backend/.env
 frontend/.env
 
+# Tambahkan/Pastikan baris ini ada
 installer/
 launcher/
+agent/
+.github/
 
 # Build output
 frontend/dist/
