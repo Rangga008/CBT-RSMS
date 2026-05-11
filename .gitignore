@@ -9,8 +9,8 @@ node_modules/
 backend/.env
 frontend/.env
 
-installer
-launcher
+installer/
+launcher/
 
 # Build output
 frontend/dist/
