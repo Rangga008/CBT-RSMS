@@ -50,7 +50,9 @@
 		<!-- Search + Filter -->
 		<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
 			<div class="flex flex-col md:flex-row gap-3">
-				<div class="flex items-center gap-2 text-sm text-slate-600 flex-shrink-0">
+				<div
+					class="flex items-center gap-2 text-sm text-slate-600 flex-shrink-0"
+				>
 					<span>Tampilkan</span>
 					<select
 						v-model="perPage"
@@ -87,7 +89,11 @@
 						class="pl-9 input-field"
 					/>
 				</div>
-				<select v-model="filterKelas" @change="currentPage = 1" class="input-field md:w-48">
+				<select
+					v-model="filterKelas"
+					@change="currentPage = 1"
+					class="input-field md:w-48"
+				>
 					<option value="">Semua Kelas</option>
 					<option v-for="k in uniqueKelas" :key="k" :value="k">{{ k }}</option>
 				</select>
@@ -279,7 +285,32 @@ const filterKelas = ref("");
 const currentPage = ref(1);
 const perPage = ref(15);
 const selected = reactive(new Set());
-const appConfig = ref({ app_name: "CBT RSMS", school_name: "RSMS" });
+const appConfig = ref({
+	app_name: "CBT RSMS",
+	school_name: "RSMS",
+	card_header_line1: "",
+	card_header_line2: "",
+	card_header_line3: "",
+	card_header_address: "",
+	card_logo_left_url: "",
+	card_logo_right_url: "",
+	card_stamp_url: "",
+	card_photo_placeholder_url: "",
+	card_signature_location: "",
+	card_signature_title: "",
+	card_signature_name: "",
+	card_signature_nip: "",
+	logo_url: "",
+});
+
+function esc(v) {
+	return String(v ?? "")
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/\"/g, "&quot;")
+		.replace(/'/g, "&#39;");
+}
 
 const uniqueKelas = computed(() => {
 	const s = new Set(students.value.map((s) => s.kelas).filter(Boolean));
@@ -301,60 +332,101 @@ const filtered = computed(() => {
 });
 
 const totalPages = computed(() => {
-	if (perPage.value === 'all') return 1;
+	if (perPage.value === "all") return 1;
 	return Math.max(1, Math.ceil(filtered.value.length / perPage.value));
 });
 const paginated = computed(() => {
-	if (perPage.value === 'all') return filtered.value;
+	if (perPage.value === "all") return filtered.value;
 	const pp = Number(perPage.value);
 	const start = (currentPage.value - 1) * pp;
 	return filtered.value.slice(start, start + pp);
 });
 
 function kartuHTML(s) {
-	const appName = appConfig.value.app_name || "CBT RSMS";
-	const schoolName = appConfig.value.school_name || "RSMS";
+	const cfg = appConfig.value || {};
+	const appName = cfg.app_name || "CBT RSMS";
+	const schoolName = cfg.school_name || "RSMS";
+	const headerLine1 = cfg.card_header_line1 || "KEMENTERIAN AGAMA";
+	const headerLine2 =
+		cfg.card_header_line2 || "PANITIA PENERIMAAN PESERTA DIDIK BARU";
+	const headerLine3 = cfg.card_header_line3 || schoolName;
+	const headerAddress = cfg.card_header_address || "";
+	const logoLeft = cfg.card_logo_left_url || cfg.logo_url || "";
+	const logoRight = cfg.card_logo_right_url || cfg.logo_url || "";
+	const stampUrl = cfg.card_stamp_url || "";
+	const photoUrl = cfg.card_photo_placeholder_url || "";
+	const signLocation = cfg.card_signature_location || "";
+	const signTitle = cfg.card_signature_title || "Ketua Panitia";
+	const signName = cfg.card_signature_name || "Panitia";
+	const signNip = cfg.card_signature_nip || "";
+	const participantNo = s.userId || s.id || "-";
+	const studentName = s.nama || "-";
+	const schoolOrigin = s.kelas || "-";
+	const displayPassword = s.displayPassword || "-";
 	return `
-    <div style="width:340px;border:2px solid #059669;border-radius:12px;overflow:hidden;font-family:'Segoe UI',sans-serif;box-shadow:0 4px 15px rgba(0,0,0,.1);break-inside:avoid;page-break-inside:avoid;">
-      <div style="background:linear-gradient(135deg,#059669,#0284c7);padding:14px 16px;color:white;">
-        <div style="font-size:11px;font-weight:600;letter-spacing:2px;opacity:.8;text-transform:uppercase;">Kartu Peserta Ujian</div>
-        <div style="font-size:16px;font-weight:800;margin-top:2px;">${appName}</div>
-        <div style="font-size:10px;opacity:.75;margin-top:1px;">${schoolName}</div>
+		<div style="width:340px;border:2px solid #111;background:#fff;color:#111;font-family:'Times New Roman',serif;position:relative;break-inside:avoid;page-break-inside:avoid;">
+			<div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #111;padding:4px 6px;gap:6px;">
+				<div style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+					${logoLeft ? `<img src="${esc(logoLeft)}" style="max-width:100%;max-height:100%;object-fit:contain;" />` : ""}
+				</div>
+				<div style="flex:1;text-align:center;line-height:1.1;">
+					<div style="font-weight:700;font-size:7px;">${esc(headerLine1)}</div>
+					<div style="font-weight:700;font-size:8px;">${esc(headerLine2)}</div>
+					<div style="font-weight:700;font-size:9px;">${esc(headerLine3)}</div>
+					${headerAddress ? `<div style="font-size:6.5px;margin-top:1px;">${esc(headerAddress)}</div>` : ""}
+				</div>
+				<div style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+					${logoRight ? `<img src="${esc(logoRight)}" style="max-width:100%;max-height:100%;object-fit:contain;" />` : ""}
+				</div>
       </div>
-      <div style="background:#f0fdf4;padding:14px 16px;border-bottom:1px solid #d1fae5;">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div style="width:52px;height:52px;background:linear-gradient(135deg,#059669,#0284c7);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:22px;font-weight:900;text-transform:uppercase;flex-shrink:0;">
-            ${s.nama?.charAt(0) || "?"}
+
+			<div style="border-bottom:1px solid #111;text-align:center;font-weight:700;font-size:10px;letter-spacing:.7px;padding:4px 0;">
+				KARTU PESERTA UJIAN
+			</div>
+
+			<div style="padding:6px 8px 8px;">
+				<table style="width:100%;border-collapse:separate;border-spacing:0 4px;font-size:9.2px;line-height:1.2;">
+					<tr>
+						<td style="width:82px;vertical-align:top;">No Peserta</td>
+						<td style="width:8px;">:</td>
+						<td style="font-weight:700;">${esc(participantNo)}</td>
+					</tr>
+					<tr>
+						<td style="vertical-align:top;">Nama Lengkap</td>
+						<td>:</td>
+						<td style="font-weight:700;">${esc(studentName)}</td>
+					</tr>
+					<tr>
+						<td style="vertical-align:top;">Asal/Kelas</td>
+						<td>:</td>
+						<td style="font-weight:700;">${esc(schoolOrigin)}</td>
+					</tr>
+					<tr>
+						<td style="vertical-align:top;">Password</td>
+						<td>:</td>
+						<td style="font-weight:700;">${esc(displayPassword)}</td>
+					</tr>
+				</table>
+
+				<div style="margin-top:7px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;position:relative;">
+					<div style="border:1px solid #111;width:78px;height:96px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+						${photoUrl ? `<img src="${esc(photoUrl)}" style="width:100%;height:100%;object-fit:cover;" />` : `<div style="font-size:7px;color:#666;text-align:center;line-height:1.3;">Foto<br/>Peserta</div>`}
+					</div>
+
+					<div style="flex:1;text-align:left;position:relative;min-height:96px;">
+						${signLocation ? `<div style="font-size:8px;">${esc(signLocation)}</div>` : ""}
+						<div style="font-size:8px;">${esc(signTitle)},</div>
+						${stampUrl ? `<img src="${esc(stampUrl)}" style="position:absolute;left:-18px;top:6px;width:86px;height:86px;object-fit:contain;opacity:.45;" />` : ""}
+						<div style="height:42px;"></div>
+						<div style="font-size:8.2px;font-weight:700;text-decoration:underline;">${esc(signName)}</div>
+						${signNip ? `<div style="font-size:7.6px;">${esc(signNip)}</div>` : ""}
+					</div>
           </div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:15px;font-weight:800;color:#065f46;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.nama || "-"}</div>
-            <div style="font-size:11px;color:#6b7280;margin-top:2px;">Kelas: <b style="color:#047857;">${s.kelas || "-"}</b></div>
-          </div>
-        </div>
-      </div>
-      <div style="padding:12px 16px;background:white;">
-        <table style="width:100%;border-collapse:collapse;font-size:12px;">
-          <tr>
-            <td style="padding:4px 0;color:#6b7280;width:80px;">ID Siswa</td>
-            <td style="padding:4px 0;font-weight:700;color:#111;font-family:monospace;letter-spacing:.5px;">${s.userId || s.id || "-"}</td>
-          </tr>
-          <tr>
-            <td style="padding:4px 0;color:#6b7280;">Password</td>
-            <td style="padding:4px 0;font-weight:700;color:#b91c1c;font-family:monospace;">${s.displayPassword || "••••••••"}</td>
-          </tr>
-          <tr>
-            <td style="padding:4px 0;color:#6b7280;">Status</td>
-            <td style="padding:4px 0;">
-              <span style="background:${s.isActive ? "#d1fae5" : "#fee2e2"};color:${s.isActive ? "#065f46" : "#991b1b"};padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;">
-                ${s.isActive ? "AKTIF" : "NON-AKTIF"}
-              </span>
-            </td>
-          </tr>
-        </table>
-      </div>
-      <div style="background:#f8fafc;padding:8px 16px;border-top:1px solid #e2e8f0;text-align:center;">
-        <div style="font-size:10px;color:#94a3b8;">Kartu ini bersifat rahasia. Jangan dibagikan kepada orang lain.</div>
-      </div>
+			</div>
+
+			<div style="border-top:1px solid #111;padding:4px 6px;text-align:center;font-size:7px;">
+				${esc(appName)} - ${esc(schoolName)}
+			</div>
     </div>
   `;
 }
@@ -369,7 +441,7 @@ function printSelected() {
 }
 
 function openPrintWindow(list) {
-	const w = window.open("", "_blank", "width=900,height=700");
+	const w = window.open("", "_blank", "width=1000,height=700");
 	const cards = list.map((s) => kartuHTML(s)).join("");
 	w.document.write(`
     <!DOCTYPE html>
@@ -380,11 +452,11 @@ function openPrintWindow(list) {
       <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #f1f5f9; padding: 20px; font-family: 'Segoe UI', sans-serif; }
-        .cards-grid { display: flex; flex-wrap: wrap; gap: 16px; justify-content: flex-start; }
+	        .cards-grid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-start; align-items: flex-start; }
         @media print {
           body { background: white; padding: 0; }
           .no-print { display: none; }
-          .cards-grid { gap: 10px; }
+	          .cards-grid { gap: 8px; }
         }
       </style>
     </head>

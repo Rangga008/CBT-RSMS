@@ -1,5 +1,17 @@
 import { prisma } from "../lib/db.js";
 
+function isValidImageUrl(value) {
+	if (!value || typeof value !== "string") return false;
+	const trimmed = value.trim();
+	if (trimmed.startsWith("/uploads/")) return true;
+	try {
+		new URL(trimmed);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 export default async function imagesRoutes(fastify) {
 	// GET /images — list with pagination + search + category filter
 	fastify.get(
@@ -45,10 +57,7 @@ export default async function imagesRoutes(fastify) {
 					.code(400)
 					.send({ success: false, message: "name dan url wajib diisi." });
 
-			// Basic URL validation
-			try {
-				new URL(url);
-			} catch {
+			if (!isValidImageUrl(url)) {
 				return reply
 					.code(400)
 					.send({ success: false, message: "URL tidak valid." });

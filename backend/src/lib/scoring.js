@@ -59,9 +59,18 @@ export function calculateScore(questions, answers) {
 				key !== "" && ans !== "" && ans.toLowerCase() === key.toLowerCase();
 			ratio = isCorrect ? 1 : 0;
 		} else if (q.type === "PG_KOMPLEKS") {
-			const keyArr = Array.isArray(q.correctAnswer)
-				? q.correctAnswer.map(stripHtml)
-				: [];
+			let parsedKey = q.correctAnswer;
+			if (typeof parsedKey === "string") {
+				try {
+					parsedKey = JSON.parse(parsedKey);
+				} catch {
+					parsedKey = parsedKey
+						.split(",")
+						.map((v) => v.trim())
+						.filter(Boolean);
+				}
+			}
+			const keyArr = Array.isArray(parsedKey) ? parsedKey.map(stripHtml) : [];
 			const ansArr = Array.isArray(studentAnswer)
 				? studentAnswer.map(stripHtml)
 				: [];

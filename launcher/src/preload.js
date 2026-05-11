@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld("cbt", {
 	installRedisWinget: () => ipcRenderer.invoke("install-redis-winget"),
 	installPostgresWinget: () => ipcRenderer.invoke("install-postgres-winget"),
 	installNodeWinget: () => ipcRenderer.invoke("install-node-winget"),
+	installWinget: () => ipcRenderer.invoke("install-winget"),
+	updateWinget: () => ipcRenderer.invoke("update-winget"),
 
 	// Network
 	getNetworkIps: () => ipcRenderer.invoke("get-network-ips"),

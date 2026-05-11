@@ -399,6 +399,35 @@ ipcMain.handle("install-node-winget", async () => {
 	}
 });
 
+ipcMain.handle("install-winget", async () => {
+	if (process.platform !== "win32") {
+		return { ok: false, error: "winget hanya tersedia di Windows." };
+	}
+	try {
+		const script =
+			"powershell -NoProfile -ExecutionPolicy Bypass -Command \"$p=Join-Path $env:TEMP 'Microsoft.DesktopAppInstaller.msixbundle'; Invoke-WebRequest -UseBasicParsing -Uri 'https://aka.ms/getwinget' -OutFile $p; Add-AppxPackage -Path $p\"";
+		await execAsync(script);
+		return { ok: true };
+	} catch (err) {
+		return { ok: false, error: err.message };
+	}
+});
+
+ipcMain.handle("update-winget", async () => {
+	if (process.platform !== "win32") {
+		return { ok: false, error: "winget hanya tersedia di Windows." };
+	}
+	try {
+		await execAsync("winget source update");
+		await execAsync(
+			"winget upgrade --id Microsoft.AppInstaller --silent --accept-package-agreements --accept-source-agreements",
+		);
+		return { ok: true };
+	} catch (err) {
+		return { ok: false, error: err.message };
+	}
+});
+
 // Window controls
 ipcMain.on("win-minimize", () => mainWindow?.minimize());
 ipcMain.on("win-maximize", () =>
@@ -421,6 +450,17 @@ ipcMain.handle("run-install", async (_, opts) => {
 ipcMain.handle("check-deps", async () => {
 	const isWin = process.platform === "win32";
 	const checks = await Promise.allSettled([
+		execAsync("winget --version")
+			.then((r) => ({
+				name: "winget",
+				version: r.stdout.trim(),
+				ok: true,
+			}))
+			.catch(() => ({
+				name: "winget",
+				version: "tidak ditemukan",
+				ok: false,
+			})),
 		execAsync("node --version").then((r) => ({
 			name: "Node.js",
 			version: r.stdout.trim(),

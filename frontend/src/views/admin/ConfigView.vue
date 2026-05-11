@@ -156,6 +156,172 @@
 
 				<div class="border-t border-slate-100 pt-2"></div>
 
+				<!-- Template Kartu Ujian -->
+				<div class="space-y-4">
+					<div>
+						<p class="text-sm font-bold text-slate-700">Template Kartu Ujian</p>
+						<p class="text-xs text-slate-400 mt-1">
+							Isi data ini agar tampilan kartu ujian menyerupai format kartu
+							sekolah.
+						</p>
+					</div>
+
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div>
+							<label class="label-field">Baris Header 1</label>
+							<input
+								v-model="cfg.card_header_line1"
+								type="text"
+								class="input-field"
+								placeholder="KEMENTERIAN AGAMA"
+							/>
+						</div>
+						<div>
+							<label class="label-field">Baris Header 2</label>
+							<input
+								v-model="cfg.card_header_line2"
+								type="text"
+								class="input-field"
+								placeholder="PANITIA PENERIMAAN PESERTA DIDIK BARU"
+							/>
+						</div>
+						<div>
+							<label class="label-field">Baris Header 3</label>
+							<input
+								v-model="cfg.card_header_line3"
+								type="text"
+								class="input-field"
+								placeholder="MADRASAH TSANAWIYAH NEGERI AMBON"
+							/>
+						</div>
+						<div>
+							<label class="label-field">Alamat Header</label>
+							<input
+								v-model="cfg.card_header_address"
+								type="text"
+								class="input-field"
+								placeholder="Jl. Jend. Sudirman..."
+							/>
+						</div>
+					</div>
+
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div>
+							<label class="label-field">Logo Kiri (URL)</label>
+							<div class="flex gap-2">
+								<input
+									v-model="cfg.card_logo_left_url"
+									type="text"
+									class="input-field"
+									placeholder="/uploads/... atau https://..."
+								/>
+								<button
+									type="button"
+									@click="openImagePicker('card_logo_left_url')"
+									class="px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-semibold border border-blue-200 transition whitespace-nowrap"
+								>
+									📁 Library
+								</button>
+							</div>
+						</div>
+						<div>
+							<label class="label-field">Logo Kanan (URL)</label>
+							<div class="flex gap-2">
+								<input
+									v-model="cfg.card_logo_right_url"
+									type="text"
+									class="input-field"
+									placeholder="/uploads/... atau https://..."
+								/>
+								<button
+									type="button"
+									@click="openImagePicker('card_logo_right_url')"
+									class="px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-semibold border border-blue-200 transition whitespace-nowrap"
+								>
+									📁 Library
+								</button>
+							</div>
+						</div>
+						<div>
+							<label class="label-field">Stempel (URL, opsional)</label>
+							<div class="flex gap-2">
+								<input
+									v-model="cfg.card_stamp_url"
+									type="text"
+									class="input-field"
+									placeholder="/uploads/... atau https://..."
+								/>
+								<button
+									type="button"
+									@click="openImagePicker('card_stamp_url')"
+									class="px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-semibold border border-blue-200 transition whitespace-nowrap"
+								>
+									📁 Library
+								</button>
+							</div>
+						</div>
+						<div>
+							<label class="label-field">Foto Placeholder (URL)</label>
+							<div class="flex gap-2">
+								<input
+									v-model="cfg.card_photo_placeholder_url"
+									type="text"
+									class="input-field"
+									placeholder="/uploads/... atau https://..."
+								/>
+								<button
+									type="button"
+									@click="openImagePicker('card_photo_placeholder_url')"
+									class="px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-semibold border border-blue-200 transition whitespace-nowrap"
+								>
+									📁 Library
+								</button>
+							</div>
+						</div>
+					</div>
+
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div>
+							<label class="label-field">Lokasi/Tanggal TTD</label>
+							<input
+								v-model="cfg.card_signature_location"
+								type="text"
+								class="input-field"
+								placeholder="Ambon, 4 Mei 2026"
+							/>
+						</div>
+						<div>
+							<label class="label-field">Jabatan Penandatangan</label>
+							<input
+								v-model="cfg.card_signature_title"
+								type="text"
+								class="input-field"
+								placeholder="Ketua Panitia"
+							/>
+						</div>
+						<div>
+							<label class="label-field">Nama Penandatangan</label>
+							<input
+								v-model="cfg.card_signature_name"
+								type="text"
+								class="input-field"
+								placeholder="Yusran, S.Pd"
+							/>
+						</div>
+						<div>
+							<label class="label-field">NIP Penandatangan</label>
+							<input
+								v-model="cfg.card_signature_nip"
+								type="text"
+								class="input-field"
+								placeholder="NIP. 19740613..."
+							/>
+						</div>
+					</div>
+				</div>
+
+				<div class="border-t border-slate-100 pt-2"></div>
+
 				<!-- Tampilkan Hasil -->
 				<div>
 					<label class="label-field">Pengaturan Hasil Ujian</label>
@@ -319,7 +485,9 @@ const filteredPickerImages = computed(() => {
 
 function selectPickerImage(img) {
 	if (imagePickerTarget.value === "logo") cfg.value.logo_url = img.url;
-	else cfg.value.background_url = img.url;
+	else if (imagePickerTarget.value === "background")
+		cfg.value.background_url = img.url;
+	else cfg.value[imagePickerTarget.value] = img.url;
 	showImagePicker.value = false;
 	pickerSearch.value = "";
 }

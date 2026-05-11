@@ -36,15 +36,12 @@ async function checkDeps() {
 	guide.innerHTML = "";
 	guide.classList.add("hidden");
 
-	let coreOk = true; // node + npm must be ok
+	let coreOk = true; // node + npm + postgres must be ok
 	const guides = [];
 
 	deps.forEach((dep) => {
 		const isCritical =
-			dep.name === "Node.js" ||
-			dep.name === "npm" ||
-			dep.name === "PostgreSQL" ||
-			dep.name === "npm";
+			dep.name === "Node.js" || dep.name === "npm" || dep.name === "PostgreSQL";
 		const el = document.createElement("div");
 		el.className = `dep-item ${dep.ok ? "ok" : isCritical ? "fail" : "warn"}`;
 		const icon = dep.ok ? "✅" : isCritical ? "❌" : "⚠️";
@@ -67,75 +64,44 @@ async function checkDeps() {
 		let html = '<div style="display:flex;flex-direction:column;gap:8px">';
 
 		for (const dep of guides) {
-			if (dep.name === "Node.js") {
+			if (dep.name === "winget") {
+				html += `<div class="info-box" style="border-color:var(--yellow)">
+		  ⚠️ <b>winget belum terdeteksi.</b><br>
+		  Auto-install dependency butuh winget (Windows Package Manager).<br>
+		  <button class="btn-sm" style="margin-top:6px" onclick="tryInstallWinget()">⚡ Install winget</button>
+		  <button class="btn-sm" style="margin-top:6px;margin-left:6px" onclick="tryUpdateWinget()">🔄 Update winget</button>
+		  <button class="btn-sm" style="margin-top:6px;margin-left:6px" onclick="checkDeps()">✅ Cek Ulang</button>
+		</div>`;
+			} else if (dep.name === "Node.js") {
 				html += `<div class="info-box" style="border-color:var(--red)">
 		  ❌ <b>Node.js wajib diinstall!</b><br>
-		  Download: <b>https://nodejs.org/en/download</b> (pilih LTS) ATAU klik tombol di bawah untuk auto-install<br>
-		  Setelah install, <b>restart komputer</b> lalu klik "Cek Ulang"
+		  Download: <b>https://nodejs.org/en/download</b> (pilih LTS) ATAU klik auto-install.<br>
+		  Setelah install, klik "Cek Ulang".
 		  <button class="btn-sm" style="margin-top:6px" onclick="window.cbt.openUrl('https://nodejs.org/en/download')">🔗 Buka Halaman Download</button>
-		  <button class="btn-sm" style="margin-top:6px;margin-left:6px" onclick="tryInstallNode()">⚡ Auto-install via winget</button>
+		  <button class="btn-sm" style="margin-top:6px;margin-left:6px" onclick="tryInstallNode()">⚡ Auto-install Node.js</button>
+		  <button class="btn-sm" style="margin-top:6px;margin-left:6px" onclick="checkDeps()">✅ Cek Ulang</button>
 		</div>`;
 			} else if (dep.name === "PostgreSQL") {
-				html += `<div class="info-box" style="border-color:var(--yellow)">
+				html += `<div class="info-box" style="border-color:var(--red)">
 		  ❌ <b>PostgreSQL wajib diinstall! (Database server)</b><br>
-		  Download: <b>https://www.enterprisedb.com/downloads/postgres-postgresql-installers</b><br>
-		  Pilih versi Windows x86-64, jalankan installer, lalu:<br>
-		  1. Set password untuk user <code>postgres</code> (ingat password ini!)<br>
-		  2. Port biarkan default (<b>5432</b>)<br>
-		  3. Saat ditanya "Stack Builder", pilih <b>Skip</b><br>
-		  4. Setelah install, <b>restart komputer</b><br>
-		  5. Klik "Cek Ulang" untuk verifikasi<br>
-		  <button class="btn-sm" style="margin-top:6px" onclick="window.cbt.openUrl('https://www.enterprisedb.com/downloads/postgres-postgresql-installers')">🔗 Buka Halaman Download</button>
-		  <button class="btn-sm" style="margin-top:6px;margin-left:6px" onclick="checkDeps()">🔄 Cek Ulang</button>
-        </div>`;
+		  Download manual: <b>https://www.enterprisedb.com/downloads/postgres-postgresql-installers</b><br>
+		  Atau gunakan auto-install via winget.
+		  <button class="btn-sm" style="margin-top:6px" onclick="window.cbt.openUrl('https://www.enterprisedb.com/downloads/postgres-postgresql-installers')">🔗 Download Manual</button>
+		  <button class="btn-sm" style="margin-top:6px;margin-left:6px" onclick="tryInstallPostgres()">⚡ Auto-install PostgreSQL</button>
+		  <button class="btn-sm" style="margin-top:6px;margin-left:6px" onclick="checkDeps()">✅ Cek Ulang</button>
+		</div>`;
 			} else if (dep.name === "Redis") {
-				async function tryInstallNode() {
-					if (
-						!confirm(
-							"ℹ️ Auto-install Node.js via winget?\n\n" +
-								"Ini akan menjalankan command di background.\n" +
-								"Proses ini dapat memakan waktu 5-10 menit.\n\n" +
-								"Pastikan Anda punya internet connection yang stabil.\n\n" +
-								"Klik OK untuk lanjut atau CANCEL untuk manual install.",
-						)
-					) {
-						return;
-					}
-
-					const statusEl = document.createElement("div");
-					statusEl.className = "info-box";
-					statusEl.style.borderColor = "var(--blue)";
-					statusEl.innerHTML = `
-					<span class="spinner" style="display:inline-block;margin-right:8px"></span>
-					<b>⏳ Sedang menginstall Node.js...</b><br>
-					Proses dapat memakan waktu beberapa menit, jangan tutup jendela ini.
-					`;
-					document.getElementById("install-guide").appendChild(statusEl);
-
-					const result = await window.cbt.installNodeWinget();
-
-					statusEl.innerHTML = result.ok
-						? `✅ <b>Node.js berhasil diinstall!</b><br>Restart komputer Anda, lalu klik "Cek Ulang"`
-						: `❌ <b>Gagal auto-install Node.js:</b><br>${result.error}<br><br>Coba install manual dari: https://nodejs.org/en/download`;
-					statusEl.style.borderColor = result.ok
-						? "var(--green)"
-						: "var(--red)";
-				}
 				html += `<div class="info-box" style="border-color:var(--yellow)">
-          ⚠️ <b>Redis belum terdeteksi.</b><br>
-          <b>Cara install Redis di Windows:</b><br>
-          • Opsi A (direkomendasikan): Gunakan <b>Memurai</b> — Redis-compatible untuk Windows<br>
-          &nbsp;&nbsp;Download: <b>https://www.memurai.com/get-memurai</b><br>
-          • Opsi B: Aktifkan WSL2 lalu jalankan Redis di dalam WSL<br>
-          • Opsi C: Download binary lama (Windows): <b>https://github.com/microsoftarchive/redis/releases</b><br>
-          <button class="btn-sm" style="margin-top:6px" onclick="window.cbt.openUrl('https://www.memurai.com/get-memurai')">🔗 Download Memurai</button>
-          <button class="btn-sm" style="margin-top:6px;margin-left:6px" onclick="tryInstallRedis()">⚡ Auto-install via winget</button>
-          <button class="btn-sm" style="margin-top:6px;margin-left:6px" onclick="checkDeps()">🔄 Cek Ulang</button>
-        </div>`;
+		  ⚠️ <b>Redis belum terdeteksi.</b><br>
+		  Redis opsional untuk performa cache/sesi. Anda bisa install sekarang atau lanjut dulu.<br>
+		  <button class="btn-sm" style="margin-top:6px" onclick="window.cbt.openUrl('https://www.memurai.com/get-memurai')">🔗 Download Memurai</button>
+		  <button class="btn-sm" style="margin-top:6px;margin-left:6px" onclick="tryInstallRedis()">⚡ Auto-install Redis</button>
+		  <button class="btn-sm" style="margin-top:6px;margin-left:6px" onclick="checkDeps()">✅ Cek Ulang</button>
+		</div>`;
 			} else if (dep.name === "PM2") {
 				html += `<div class="info-box">
-          ℹ️ <b>PM2</b> akan diinstall otomatis saat proses instalasi berjalan. Tidak perlu install manual.
-        </div>`;
+		  ℹ️ <b>PM2</b> akan diinstall otomatis saat proses instalasi berjalan. Tidak perlu install manual.
+		</div>`;
 			}
 		}
 		html += "</div>";
@@ -145,36 +111,83 @@ async function checkDeps() {
 	document.getElementById("btn-next-0").disabled = !coreOk;
 }
 
-async function tryInstallRedis() {
-	const result = await window.cbt.installRedisWinget();
+function appendInstallerStatus(message, borderColor = "var(--blue)") {
+	const statusEl = document.createElement("div");
+	statusEl.className = "info-box";
+	statusEl.style.borderColor = borderColor;
+	statusEl.innerHTML = message;
+	document.getElementById("install-guide").appendChild(statusEl);
+	return statusEl;
+}
+
+async function runAutoInstall(
+	confirmText,
+	action,
+	successText,
+	fallbackText = "",
+) {
+	if (!confirm(confirmText)) return;
+
+	const statusEl = appendInstallerStatus(
+		'<span class="spinner" style="display:inline-block;margin-right:8px"></span><b>⏳ Proses auto-install berjalan...</b><br>Mohon tunggu, jangan tutup jendela ini.',
+		"var(--blue)",
+	);
+
+	const result = await action();
 	if (result.ok) {
-		alert(
-			'✅ Redis berhasil diinstall via winget! Klik "Cek Ulang" untuk verifikasi.',
-		);
+		statusEl.style.borderColor = "var(--green)";
+		statusEl.innerHTML = `✅ <b>${successText}</b><br>Klik "Cek Ulang" untuk verifikasi.`;
 	} else {
-		alert(
-			"❌ Gagal auto-install: " +
-				result.error +
-				"\nCoba install manual dengan link di atas.",
-		);
+		statusEl.style.borderColor = "var(--red)";
+		statusEl.innerHTML = `❌ <b>Auto-install gagal:</b><br>${result.error || "Unknown error"}${fallbackText ? `<br><br>${fallbackText}` : ""}`;
 	}
-	checkDeps();
+
+	await checkDeps();
+}
+
+async function tryInstallNode() {
+	return runAutoInstall(
+		"Auto-install Node.js via winget sekarang?",
+		() => window.cbt.installNodeWinget(),
+		"Node.js berhasil diinstall",
+		"Coba manual dari https://nodejs.org/en/download",
+	);
+}
+
+async function tryInstallRedis() {
+	return runAutoInstall(
+		"Auto-install Redis via winget sekarang?",
+		() => window.cbt.installRedisWinget(),
+		"Redis berhasil diinstall",
+		"Jika gagal, gunakan Memurai: https://www.memurai.com/get-memurai",
+	);
 }
 
 async function tryInstallPostgres() {
-	const result = await window.cbt.installPostgresWinget();
-	if (result.ok) {
-		alert(
-			'✅ PostgreSQL berhasil diinstall via winget! Jalankan ulang installer atau klik "Cek Ulang" untuk verifikasi.',
-		);
-	} else {
-		alert(
-			"❌ Gagal auto-install PostgreSQL: " +
-				result.error +
-				"\nCoba install manual dengan link di atas.",
-		);
-	}
-	checkDeps();
+	return runAutoInstall(
+		"Auto-install PostgreSQL via winget sekarang?",
+		() => window.cbt.installPostgresWinget(),
+		"PostgreSQL berhasil diinstall",
+		"Jika gagal, install manual: https://www.enterprisedb.com/downloads/postgres-postgresql-installers",
+	);
+}
+
+async function tryInstallWinget() {
+	return runAutoInstall(
+		"Install winget (Windows Package Manager) sekarang?",
+		() => window.cbt.installWinget(),
+		"winget berhasil diinstall",
+		"Jika gagal, install App Installer dari Microsoft Store.",
+	);
+}
+
+async function tryUpdateWinget() {
+	return runAutoInstall(
+		"Update winget sekarang?",
+		() => window.cbt.updateWinget(),
+		"winget berhasil diupdate",
+		"Coba jalankan ulang installer sebagai Administrator.",
+	);
 }
 
 async function goStep(n) {

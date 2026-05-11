@@ -28,13 +28,13 @@ export default async function uploadsRoutes(fastify) {
 					.code(400)
 					.send({ success: false, message: "Tidak ada file." });
 			if (!ALLOWED_MIME.includes(data.mimetype)) {
-				return reply
-					.code(400)
-					.send({
-						success: false,
-						message: "Hanya file gambar (JPG, PNG, GIF, WebP) yang diizinkan.",
-					});
+				return reply.code(400).send({
+					success: false,
+					message: "Hanya file gambar (JPG, PNG, GIF, WebP) yang diizinkan.",
+				});
 			}
+
+			await fs.promises.mkdir(UPLOAD_DIR, { recursive: true });
 
 			// Generate nama file unik
 			const ext = path.extname(data.filename) || ".jpg";
@@ -47,12 +47,10 @@ export default async function uploadsRoutes(fastify) {
 			for await (const chunk of data.file) {
 				size += chunk.length;
 				if (size > MAX_SIZE) {
-					return reply
-						.code(400)
-						.send({
-							success: false,
-							message: `File terlalu besar. Maksimal ${process.env.MAX_FILE_SIZE_MB || 5}MB.`,
-						});
+					return reply.code(400).send({
+						success: false,
+						message: `File terlalu besar. Maksimal ${process.env.MAX_FILE_SIZE_MB || 5}MB.`,
+					});
 				}
 				chunks.push(chunk);
 			}

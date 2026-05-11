@@ -412,6 +412,21 @@
 					</button>
 				</div>
 				<div class="p-6 space-y-4">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+						<div>
+							<label class="label-field">Bobot Default Impor</label>
+							<input
+								v-model.number="excelDefaultBobot"
+								type="number"
+								min="0.1"
+								step="0.1"
+								class="input-field"
+							/>
+							<p class="text-xs text-slate-400 mt-1">
+								Dipakai jika kolom bobot di Excel kosong/tidak valid.
+							</p>
+						</div>
+					</div>
 					<div
 						class="bg-green-50 border border-green-200 rounded-xl p-4 text-xs text-slate-600"
 					>
@@ -526,6 +541,21 @@
 					</button>
 				</div>
 				<div class="flex-1 overflow-y-auto p-6 space-y-4">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+						<div>
+							<label class="label-field">Bobot Default Impor</label>
+							<input
+								v-model.number="bulkDefaultBobot"
+								type="number"
+								min="0.1"
+								step="0.1"
+								class="input-field"
+							/>
+							<p class="text-xs text-slate-400 mt-1">
+								Semua soal hasil parsing akan memakai bobot ini.
+							</p>
+						</div>
+					</div>
 					<!-- Format panduan -->
 					<div
 						class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-700 space-y-1"
@@ -1305,6 +1335,7 @@ const excelFile = ref(null);
 const excelPreview = ref([]);
 const excelSaving = ref(false);
 const excelFileInput = ref(null);
+const excelDefaultBobot = ref(1);
 
 function onExcelFileChange(e) {
 	const file = e.target.files?.[0];
@@ -1329,7 +1360,13 @@ function onExcelFileChange(e) {
 					.map((v) => String(v ?? "").trim())
 					.filter(Boolean);
 				const correctAnswer = row[7] ? String(row[7]).trim() : null;
-				const bobot = row[8] ? parseFloat(row[8]) || 1 : 1;
+				const parsedBobot = row[8] ? parseFloat(row[8]) : NaN;
+				const bobot =
+					Number.isFinite(parsedBobot) && parsedBobot > 0
+						? parsedBobot
+						: Number(excelDefaultBobot.value) > 0
+							? Number(excelDefaultBobot.value)
+							: 1;
 
 				let options = [];
 				if (type === "JODOH") {
@@ -1489,8 +1526,9 @@ const bulkText = ref("");
 const bulkParsed = ref([]);
 const bulkPreview = ref({ valid: 0, errors: 0 });
 const bulkSaving = ref(false);
+const bulkDefaultBobot = ref(1);
 
-function parseBulkText(raw) {
+function parseBulkText(raw, defaultBobot = 1) {
 	const results = [];
 	const errors = [];
 	const blocks = raw.trim().split(/\n\s*\n/);
@@ -1550,6 +1588,7 @@ function parseBulkText(raw) {
 			options,
 			correctAnswer: correctAnswer || "",
 			isRequired: true,
+			bobot: Number(defaultBobot) > 0 ? Number(defaultBobot) : 1,
 			order: 0,
 		});
 	}
@@ -1562,7 +1601,10 @@ function updateBulkPreview() {
 		bulkPreview.value = { valid: 0, errors: 0 };
 		return;
 	}
-	const { results, errors } = parseBulkText(bulkText.value);
+	const { results, errors } = parseBulkText(
+		bulkText.value,
+		bulkDefaultBobot.value,
+	);
 	bulkParsed.value = results;
 	bulkPreview.value = { valid: results.length, errors: errors.length };
 }
