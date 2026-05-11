@@ -11,6 +11,7 @@ const {
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
+const net = require("net");
 const { spawn, exec } = require("child_process");
 const { promisify } = require("util");
 const execAsync = promisify(exec);
@@ -25,6 +26,35 @@ const CONFIG_FILE = path.join(app.getPath("userData"), "cbt-config.json");
 let mainWindow = null;
 let tray = null;
 let serverProcess = null;
+
+const POSTGRES_WIN_SERVICES = [
+	"postgresql-x64-17",
+	"postgresql-x64-16",
+	"postgresql-x64-15",
+	"postgresql-x64-14",
+	"postgresql-x64-13",
+	"postgresql",
+];
+const REDIS_WIN_SERVICES = ["Redis", "memurai"];
+
+async function listWindowsServiceNames(keyword) {
+	try {
+		const { stdout } = await execAsync(`sc query type= service state= all`);
+		const names = [];
+		const lines = stdout.split(/\r?\n/);
+		for (const line of lines) {
+			const m = line.match(/SERVICE_NAME:\s*(.+)$/i);
+			if (!m) continue;
+			const name = m[1].trim();
+			if (name.toLowerCase().includes(keyword.toLowerCase())) {
+				names.push(name);
+			}
+		}
+		return names;
+	} catch {
+		return [];
+	}
+}
 
 // ─── Window ─────────────────────────────────────────────────────────────────
 function createWindow(page = "dashboard") {
@@ -104,7 +134,10 @@ function setupTray() {
 			{ type: "separator" },
 			{
 				label: serverProcess ? "⏹ Stop Server" : "▶ Start Server",
-				click: () => (serverProcess ? stopServer() : startServer()),
+				click: async () => {
+					if (serverProcess) await stopServer();
+					else await startServer();
+				},
 			},
 			{
 				label: "🖥 Buka Control Panel",
@@ -123,9 +156,9 @@ function setupTray() {
 			{ type: "separator" },
 			{
 				label: "Keluar",
-				click: () => {
+				click: async () => {
 					app.isQuitting = true;
-					stopServer();
+					await stopServer();
 					app.quit();
 				},
 			},
@@ -156,10 +189,68 @@ function saveConfig(data) {
 }
 
 // ─── Server Management ───────────────────────────────────────────────────────
-function startServer() {
+async function startInfraServices() {
+	const log = (msg) =>
+		mainWindow?.webContents.send("server-log", { type: "info", msg });
+
+	if (process.platform === "win32") {
+		const discoveredPg = await listWindowsServiceNames("postgres");
+		const pgServices = [
+			...new Set([...POSTGRES_WIN_SERVICES, ...discoveredPg]),
+		];
+		for (const svc of [...pgServices, ...REDIS_WIN_SERVICES]) {
+			try {
+				await execAsync(`sc start "${svc}"`);
+				log(`ℹ️ Service ${svc} dijalankan.\n`);
+			} catch {
+				// ignore if service not found or already running
+			}
+		}
+		return;
+	}
+
+	try {
+		await execAsync("systemctl start postgresql || true");
+		await execAsync(
+			"systemctl start redis-server || systemctl start redis || true",
+		);
+	} catch {
+		// best effort only
+	}
+}
+
+async function stopInfraServices() {
+	if (process.platform === "win32") {
+		const discoveredPg = await listWindowsServiceNames("postgres");
+		const pgServices = [
+			...new Set([...POSTGRES_WIN_SERVICES, ...discoveredPg]),
+		];
+		for (const svc of [...REDIS_WIN_SERVICES, ...pgServices]) {
+			try {
+				await execAsync(`sc stop "${svc}"`);
+			} catch {
+				// ignore
+			}
+		}
+		return;
+	}
+
+	try {
+		await execAsync(
+			"systemctl stop redis-server || systemctl stop redis || true",
+		);
+		await execAsync("systemctl stop postgresql || true");
+	} catch {
+		// best effort only
+	}
+}
+
+async function startServer() {
 	if (serverProcess) return;
 	const rootDir = APP_DIR;
 	const backendDir = path.join(APP_DIR, "backend");
+
+	await startInfraServices();
 
 	// Try PM2 first (if installed and ecosystem file exists)
 	const ecoFile = fs.existsSync(path.join(rootDir, "ecosystem.config.cjs"))
@@ -227,7 +318,7 @@ function startServerDirect(backendDir) {
 	mainWindow?.webContents.send("server-status", { running: true });
 }
 
-function stopServer() {
+async function stopServer() {
 	if (serverProcess === "pm2") {
 		if (process.platform === "win32") {
 			const sysRoot =
@@ -242,24 +333,26 @@ function stopServer() {
 		serverProcess.kill();
 		serverProcess = null;
 	}
+
+	await stopInfraServices();
 }
 
 // ─── IPC Handlers ────────────────────────────────────────────────────────────
 ipcMain.handle("get-config", () => loadConfig());
 ipcMain.handle("save-config", (_, data) => saveConfig(data));
 ipcMain.handle("get-server-status", () => ({ running: !!serverProcess }));
-ipcMain.handle("start-server", () => {
-	startServer();
+ipcMain.handle("start-server", async () => {
+	await startServer();
 	return { ok: true };
 });
-ipcMain.handle("stop-server", () => {
-	stopServer();
+ipcMain.handle("stop-server", async () => {
+	await stopServer();
 	return { ok: true };
 });
 ipcMain.handle("restart-server", async () => {
-	stopServer();
+	await stopServer();
 	await new Promise((r) => setTimeout(r, 1000));
-	startServer();
+	await startServer();
 	return { ok: true };
 });
 ipcMain.handle("open-browser", () => {
@@ -283,16 +376,40 @@ ipcMain.handle("install-redis-winget", async () => {
 	}
 });
 
+ipcMain.handle("install-postgres-winget", async () => {
+	try {
+		await execAsync("winget upgrade --all");
+		await execAsync(
+			"winget install PostgreSQL.PostgreSQL --exact --silent --accept-package-agreements --accept-source-agreements",
+		);
+		return { ok: true };
+	} catch (err) {
+		return { ok: false, error: err.message };
+	}
+});
+
+ipcMain.handle("install-node-winget", async () => {
+	try {
+		await execAsync(
+			"winget install OpenJS.NodeJS --exact --silent --accept-package-agreements --accept-source-agreements",
+		);
+		return { ok: true };
+	} catch (err) {
+		return { ok: false, error: err.message };
+	}
+});
+
 // Window controls
 ipcMain.on("win-minimize", () => mainWindow?.minimize());
 ipcMain.on("win-maximize", () =>
 	mainWindow?.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize(),
 );
 ipcMain.on("win-close", () => mainWindow?.hide()); // hide to tray
-ipcMain.on("win-quit", () => {
+ipcMain.handle("win-quit", async () => {
 	app.isQuitting = true;
-	stopServer();
+	await stopServer();
 	app.quit();
+	return { ok: true };
 });
 
 // Installation
@@ -408,7 +525,11 @@ async function runInstallation(opts) {
 
 		// Step 1: npm install
 		send("deps", "Menginstall dependencies...");
-		await runCmd("npm", ["install"], { cwd: rootDir, send });
+		// Ensure dev dependencies are available because Prisma CLI is needed at install-time.
+		await runCmd("npm", ["install", "--include=dev"], {
+			cwd: rootDir,
+			send,
+		});
 		send("deps", "Dependencies terinstall.", true);
 
 		// Step 2: Install PM2 globally
@@ -423,7 +544,10 @@ async function runInstallation(opts) {
 
 		// Step 3: Prisma generate
 		send("prisma", "Generate Prisma Client...");
-		await runCmd("npx", ["prisma", "generate"], { cwd: backendDir, send });
+		await runCmd("npm", ["exec", "--", "prisma", "generate"], {
+			cwd: backendDir,
+			send,
+		});
 		send("prisma", "Prisma Client siap.", true);
 
 		// Step 4: Write .env
@@ -432,12 +556,30 @@ async function runInstallation(opts) {
 		fs.writeFileSync(path.join(backendDir, ".env"), envContent, "utf-8");
 		send("env", "File .env disimpan.", true);
 
+		// Step 4.5: Ensure DB service is up and database exists before migration.
+		send("log", "Menyiapkan service PostgreSQL...\n");
+		await ensurePostgresReady(opts, send);
+		await ensureDatabaseExists(opts, send);
+
 		// Step 5: DB migrate
 		send("migrate", "Menjalankan migrasi database...");
-		await runCmd("npx", ["prisma", "migrate", "deploy"], {
-			cwd: backendDir,
-			send,
-		});
+		try {
+			await runCmd("npm", ["exec", "--", "prisma", "migrate", "deploy"], {
+				cwd: backendDir,
+				send,
+			});
+		} catch (migrateErr) {
+			const msg = String(migrateErr.message || "");
+			// P1003 = database does not exist, P1001 = can't reach server
+			const hint = msg.includes("P1003")
+				? '\n💡 Buat database manual: psql -U postgres -c "CREATE DATABASE cbt_rsms" lalu install ulang.'
+				: msg.includes("P1001")
+					? "\n💡 Pastikan PostgreSQL berjalan dan password di step 3 benar."
+					: "";
+			throw new Error(
+				`Migrasi database gagal.${hint}\n\nDetail: ${msg.split("\n")[0]}`,
+			);
+		}
 		send("migrate", "Database siap.", true);
 
 		// Step 6: Seed
@@ -486,7 +628,176 @@ async function runInstallation(opts) {
 	}
 }
 
-function runCmd(cmd, args, { cwd, send }) {
+function delay(ms) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function canOpenTcp(host, port, timeoutMs = 1200) {
+	return new Promise((resolve) => {
+		const socket = new net.Socket();
+		let settled = false;
+
+		const done = (ok) => {
+			if (settled) return;
+			settled = true;
+			socket.destroy();
+			resolve(ok);
+		};
+
+		socket.setTimeout(timeoutMs);
+		socket.once("connect", () => done(true));
+		socket.once("timeout", () => done(false));
+		socket.once("error", () => done(false));
+		socket.connect(port, host);
+	});
+}
+
+async function ensurePostgresReady(opts, send) {
+	const host = opts.dbHost || "localhost";
+	const port = String(opts.dbPort || 5432);
+	const cwd = APP_DIR;
+
+	await startInfraServices();
+
+	let lastError = null;
+	for (let i = 1; i <= 30; i++) {
+		try {
+			await runCmd("pg_isready", ["-h", host, "-p", port], { cwd });
+			send("log", `✅ PostgreSQL siap di ${host}:${port}\n`);
+			return;
+		} catch (err) {
+			lastError = err;
+		}
+
+		const open = await canOpenTcp(host, Number(port));
+		if (open) {
+			send("log", `✅ Port PostgreSQL aktif di ${host}:${port}\n`);
+			return;
+		}
+
+		if (i % 5 === 0) {
+			send("log", `⏳ Menunggu PostgreSQL siap... (${i}/30)\n`);
+		}
+		await delay(2000);
+	}
+
+	throw new Error(
+		`PostgreSQL belum siap di ${host}:${port}. Cek service PostgreSQL.\n${lastError?.message || ""}`,
+	);
+}
+
+function getPostgreSQLBinPath() {
+	if (process.platform !== "win32") return "psql";
+	const commonPaths = [
+		"C:\\Program Files\\PostgreSQL\\17\\bin\\psql.exe",
+		"C:\\Program Files\\PostgreSQL\\16\\bin\\psql.exe",
+		"C:\\Program Files\\PostgreSQL\\15\\bin\\psql.exe",
+		"C:\\Program Files\\PostgreSQL\\14\\bin\\psql.exe",
+		"C:\\Program Files (x86)\\PostgreSQL\\17\\bin\\psql.exe",
+		"C:\\Program Files (x86)\\PostgreSQL\\16\\bin\\psql.exe",
+		"C:\\Program Files (x86)\\PostgreSQL\\15\\bin\\psql.exe",
+	];
+
+	for (const p of commonPaths) {
+		if (fs.existsSync(p)) return p;
+	}
+
+	return "psql"; // Fallback: try PATH
+}
+
+async function ensureDatabaseExists(opts, send) {
+	const host = opts.dbHost || "localhost";
+	const port = String(opts.dbPort || 5432);
+	const dbName = opts.dbName || "cbt_rsms";
+	const dbUser = opts.dbUser || "postgres";
+	const dbPass = opts.dbPass || "";
+	const cwd = APP_DIR;
+
+	const psqlPath = getPostgreSQLBinPath();
+	// Always pass PGPASSWORD even if empty — prevents psql from hanging on password prompt
+	const env = { PGPASSWORD: dbPass };
+	const dbNameLiteral = dbName.replace(/'/g, "''");
+	const dbNameIdentifier = dbName.replace(/"/g, '""');
+
+	// ── Step 1: Check if database already exists ──────────────────────────────
+	let dbExists = false;
+	try {
+		const check = await runCmd(
+			psqlPath,
+			[
+				"-h",
+				host,
+				"-p",
+				port,
+				"-U",
+				dbUser,
+				"-d",
+				"postgres",
+				"-tAc",
+				`SELECT 1 FROM pg_database WHERE datname='${dbNameLiteral}'`,
+			],
+			{ cwd, env },
+		);
+		// Use .includes("1") — tolerant of \r\n, extra whitespace, or psql notices
+		dbExists = check.stdout.includes("1");
+	} catch (checkErr) {
+		// psql not found or auth failed — log warning but don't abort
+		const firstLine = String(checkErr.message || "").split("\n")[0];
+		send("log", `⚠️ Tidak bisa cek database via psql: ${firstLine}\n`);
+		send(
+			"log",
+			`ℹ️ Melanjutkan — Prisma akan memvalidasi koneksi saat migrasi...\n`,
+		);
+	}
+
+	if (dbExists) {
+		send("log", `✅ Database ${dbName} sudah ada\n`);
+		return;
+	}
+
+	// ── Step 2: Try to create database ───────────────────────────────────────
+	send("log", `ℹ️ Membuat database ${dbName}...\n`);
+	try {
+		await runCmd(
+			psqlPath,
+			[
+				"-h",
+				host,
+				"-p",
+				port,
+				"-U",
+				dbUser,
+				"-d",
+				"postgres",
+				"-c",
+				`CREATE DATABASE "${dbNameIdentifier}"`,
+			],
+			{ cwd, env },
+		);
+		send("log", `✅ Database ${dbName} berhasil dibuat\n`);
+	} catch (createErr) {
+		const errMsg = String(createErr.message || "").toLowerCase();
+
+		// "already exists" (error code 42P04) → database is there, treat as success
+		if (errMsg.includes("already exists") || errMsg.includes("42p04")) {
+			send("log", `✅ Database ${dbName} sudah ada\n`);
+			return;
+		}
+
+		// Psql failed for other reason (auth, path not found, etc.)
+		// Log detailed warning but DO NOT throw — let prisma migrate be the judge.
+		// If the database truly doesn't exist, prisma migrate will fail with a clear message.
+		const firstLine = String(createErr.message || "").split("\n")[0];
+		send("log", `⚠️ psql tidak bisa membuat database: ${firstLine}\n`);
+		send("log", `ℹ️ Jika database sudah ada, migrasi akan tetap berjalan.\n`);
+		send(
+			"log",
+			`ℹ️ Jika gagal, buat manual: psql -U postgres -c "CREATE DATABASE ${dbName}"\n`,
+		);
+	}
+}
+
+function runCmd(cmd, args, { cwd, send, env = {} }) {
 	return new Promise((resolve, reject) => {
 		let proc;
 		if (process.platform === "win32") {
@@ -494,28 +805,48 @@ function runCmd(cmd, args, { cwd, send }) {
 			const sysRoot =
 				process.env.SystemRoot || process.env.SYSTEMROOT || "C:\\Windows";
 			const cmdExe = path.join(sysRoot, "System32", "cmd.exe");
+			const cmdToken = cmd.includes(" ") ? `"${cmd}"` : cmd;
 			const cmdStr = [
-				cmd,
-				...args.map((a) => (a.includes(" ") ? `"${a}"` : a)),
+				cmdToken,
+				...args.map((a) => {
+					const str = String(a);
+					return str.includes(" ") || str.includes("\t")
+						? `"${str.replace(/\"/g, '\\\"')}"`
+						: str;
+				}),
 			].join(" ");
 			proc = spawn(cmdExe, ["/d", "/s", "/c", cmdStr], {
 				cwd,
-				env: { ...process.env },
+				env: { ...process.env, ...env },
 				windowsHide: true,
 			});
 		} else {
 			proc = spawn(cmd, args, {
 				cwd,
-				env: { ...process.env },
+				env: { ...process.env, ...env },
 			});
 		}
+		let stdout = "";
+		let stderr = "";
 		proc.stdout?.on("data", (d) => send?.("log", d.toString()));
 		proc.stderr?.on("data", (d) => send?.("log", d.toString()));
-		proc.on("close", (code) =>
-			code === 0
-				? resolve()
-				: reject(new Error(`${cmd} gagal (exit ${code})\ncwd: ${cwd}`)),
-		);
+		proc.stdout?.on("data", (d) => {
+			stdout += d.toString();
+		});
+		proc.stderr?.on("data", (d) => {
+			stderr += d.toString();
+		});
+		proc.on("close", (code) => {
+			if (code === 0) {
+				resolve({ stdout, stderr });
+				return;
+			}
+
+			const details = [`${cmd} gagal (exit ${code})`, `cwd: ${cwd}`];
+			if (stderr.trim()) details.push(`stderr: ${stderr.trim()}`);
+			if (stdout.trim()) details.push(`stdout: ${stdout.trim()}`);
+			reject(new Error(details.join("\n")));
+		});
 		proc.on("error", (err) =>
 			reject(new Error(`${cmd}: ${err.message}\ncwd: ${cwd}`)),
 		);

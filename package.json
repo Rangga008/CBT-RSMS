@@ -15,7 +15,10 @@
 		"db:studio": "npm run db:studio --workspace=backend",
 		"start:pm2": "npm run build && pm2 start ecosystem.config.cjs",
 		"stop:pm2": "pm2 stop cbt-rsms-backend",
-		"logs:pm2": "pm2 logs cbt-rsms-backend"
+		"logs:pm2": "pm2 logs cbt-rsms-backend",
+		"launcher:dev": "npm run dev --prefix launcher",
+		"launcher:build:win": "npm run build:win --prefix launcher",
+		"launcher:build:linux": "npm run build:linux --prefix launcher"
 	},
 	"workspaces": [
 		"backend",

@@ -56,7 +56,8 @@ IF %ERRORLEVEL% NEQ 0 (
 :: --- INSTALL DEPENDENCIES ---
 echo.
 echo [4/7] Menginstall dependencies npm...
-cd /d "%~dp0"
+set ROOT_DIR=%~dp0..
+cd /d "%ROOT_DIR%"
 call npm install
 IF %ERRORLEVEL% NEQ 0 (echo [ERROR] npm install gagal & pause & exit /b 1)
 
@@ -70,7 +71,7 @@ echo        Dependencies berhasil diinstall. OK
 :: --- GENERATE PRISMA CLIENT ---
 echo.
 echo [5/7] Generate Prisma Client...
-cd /d "%~dp0backend"
+cd /d "%ROOT_DIR%\backend"
 call npx prisma generate
 IF %ERRORLEVEL% NEQ 0 (echo [ERROR] Prisma generate gagal & pause & exit /b 1)
 echo        Prisma Client berhasil digenerate. OK
@@ -78,7 +79,7 @@ echo        Prisma Client berhasil digenerate. OK
 :: --- SETUP FILE .ENV ---
 echo.
 echo [6/7] Menyiapkan file konfigurasi .env...
-cd /d "%~dp0backend"
+cd /d "%ROOT_DIR%\backend"
 IF NOT EXIST ".env" (
   copy ".env.example" ".env"
   echo        File backend\.env berhasil dibuat dari .env.example

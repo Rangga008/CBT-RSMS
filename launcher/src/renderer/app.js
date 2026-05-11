@@ -40,7 +40,11 @@ async function checkDeps() {
 	const guides = [];
 
 	deps.forEach((dep) => {
-		const isCritical = dep.name === "Node.js" || dep.name === "npm";
+		const isCritical =
+			dep.name === "Node.js" ||
+			dep.name === "npm" ||
+			dep.name === "PostgreSQL" ||
+			dep.name === "npm";
 		const el = document.createElement("div");
 		el.className = `dep-item ${dep.ok ? "ok" : isCritical ? "fail" : "warn"}`;
 		const icon = dep.ok ? "✅" : isCritical ? "❌" : "⚠️";
@@ -65,23 +69,58 @@ async function checkDeps() {
 		for (const dep of guides) {
 			if (dep.name === "Node.js") {
 				html += `<div class="info-box" style="border-color:var(--red)">
-          ❌ <b>Node.js wajib diinstall!</b><br>
-          Download: <b>https://nodejs.org/en/download</b> (pilih LTS)<br>
-          Setelah install, <b>restart komputer</b> lalu klik "Cek Ulang"
-        </div>`;
+		  ❌ <b>Node.js wajib diinstall!</b><br>
+		  Download: <b>https://nodejs.org/en/download</b> (pilih LTS) ATAU klik tombol di bawah untuk auto-install<br>
+		  Setelah install, <b>restart komputer</b> lalu klik "Cek Ulang"
+		  <button class="btn-sm" style="margin-top:6px" onclick="window.cbt.openUrl('https://nodejs.org/en/download')">🔗 Buka Halaman Download</button>
+		  <button class="btn-sm" style="margin-top:6px;margin-left:6px" onclick="tryInstallNode()">⚡ Auto-install via winget</button>
+		</div>`;
 			} else if (dep.name === "PostgreSQL") {
 				html += `<div class="info-box" style="border-color:var(--yellow)">
-          ⚠️ <b>PostgreSQL belum terdeteksi.</b><br>
-          Download: <b>https://www.enterprisedb.com/downloads/postgres-postgresql-installers</b><br>
-          Pilih versi Windows x86-64, jalankan installer, lalu:<br>
-          1. Set password untuk user <code>postgres</code><br>
-          2. Port biarkan default (<b>5432</b>)<br>
-          3. Centang "Stack Builder" → bisa skip saat ditawarkan<br>
-          4. Setelah install, pastikan service PostgreSQL sudah berjalan<br>
-          <button class="btn-sm" style="margin-top:6px" onclick="window.cbt.openUrl('https://www.enterprisedb.com/downloads/postgres-postgresql-installers')">🔗 Buka Halaman Download</button>
-          <button class="btn-sm" style="margin-top:6px;margin-left:6px" onclick="checkDeps()">🔄 Cek Ulang</button>
+		  ❌ <b>PostgreSQL wajib diinstall! (Database server)</b><br>
+		  Download: <b>https://www.enterprisedb.com/downloads/postgres-postgresql-installers</b><br>
+		  Pilih versi Windows x86-64, jalankan installer, lalu:<br>
+		  1. Set password untuk user <code>postgres</code> (ingat password ini!)<br>
+		  2. Port biarkan default (<b>5432</b>)<br>
+		  3. Saat ditanya "Stack Builder", pilih <b>Skip</b><br>
+		  4. Setelah install, <b>restart komputer</b><br>
+		  5. Klik "Cek Ulang" untuk verifikasi<br>
+		  <button class="btn-sm" style="margin-top:6px" onclick="window.cbt.openUrl('https://www.enterprisedb.com/downloads/postgres-postgresql-installers')">🔗 Buka Halaman Download</button>
+		  <button class="btn-sm" style="margin-top:6px;margin-left:6px" onclick="checkDeps()">🔄 Cek Ulang</button>
         </div>`;
 			} else if (dep.name === "Redis") {
+				async function tryInstallNode() {
+					if (
+						!confirm(
+							"ℹ️ Auto-install Node.js via winget?\n\n" +
+								"Ini akan menjalankan command di background.\n" +
+								"Proses ini dapat memakan waktu 5-10 menit.\n\n" +
+								"Pastikan Anda punya internet connection yang stabil.\n\n" +
+								"Klik OK untuk lanjut atau CANCEL untuk manual install.",
+						)
+					) {
+						return;
+					}
+
+					const statusEl = document.createElement("div");
+					statusEl.className = "info-box";
+					statusEl.style.borderColor = "var(--blue)";
+					statusEl.innerHTML = `
+					<span class="spinner" style="display:inline-block;margin-right:8px"></span>
+					<b>⏳ Sedang menginstall Node.js...</b><br>
+					Proses dapat memakan waktu beberapa menit, jangan tutup jendela ini.
+					`;
+					document.getElementById("install-guide").appendChild(statusEl);
+
+					const result = await window.cbt.installNodeWinget();
+
+					statusEl.innerHTML = result.ok
+						? `✅ <b>Node.js berhasil diinstall!</b><br>Restart komputer Anda, lalu klik "Cek Ulang"`
+						: `❌ <b>Gagal auto-install Node.js:</b><br>${result.error}<br><br>Coba install manual dari: https://nodejs.org/en/download`;
+					statusEl.style.borderColor = result.ok
+						? "var(--green)"
+						: "var(--red)";
+				}
 				html += `<div class="info-box" style="border-color:var(--yellow)">
           ⚠️ <b>Redis belum terdeteksi.</b><br>
           <b>Cara install Redis di Windows:</b><br>
@@ -115,6 +154,22 @@ async function tryInstallRedis() {
 	} else {
 		alert(
 			"❌ Gagal auto-install: " +
+				result.error +
+				"\nCoba install manual dengan link di atas.",
+		);
+	}
+	checkDeps();
+}
+
+async function tryInstallPostgres() {
+	const result = await window.cbt.installPostgresWinget();
+	if (result.ok) {
+		alert(
+			'✅ PostgreSQL berhasil diinstall via winget! Jalankan ulang installer atau klik "Cek Ulang" untuk verifikasi.',
+		);
+	} else {
+		alert(
+			"❌ Gagal auto-install PostgreSQL: " +
 				result.error +
 				"\nCoba install manual dengan link di atas.",
 		);

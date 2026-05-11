@@ -18,6 +18,8 @@ contextBridge.exposeInMainWorld("cbt", {
 	runInstall: (opts) => ipcRenderer.invoke("run-install", opts),
 	checkDeps: () => ipcRenderer.invoke("check-deps"),
 	installRedisWinget: () => ipcRenderer.invoke("install-redis-winget"),
+	installPostgresWinget: () => ipcRenderer.invoke("install-postgres-winget"),
+	installNodeWinget: () => ipcRenderer.invoke("install-node-winget"),
 
 	// Network
 	getNetworkIps: () => ipcRenderer.invoke("get-network-ips"),
@@ -30,6 +32,7 @@ contextBridge.exposeInMainWorld("cbt", {
 	minimize: () => ipcRenderer.send("win-minimize"),
 	maximize: () => ipcRenderer.send("win-maximize"),
 	close: () => ipcRenderer.send("win-close"),
+	quit: () => ipcRenderer.invoke("win-quit"),
 
 	// Events
 	onServerLog: (cb) => ipcRenderer.on("server-log", (_, d) => cb(d)),

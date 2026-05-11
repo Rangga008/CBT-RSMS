@@ -12,6 +12,7 @@ frontend/.env
 # Build output
 frontend/dist/
 backend/public/
+launcher/dist-electron/
 
 # Upload files
 backend/uploads/*
