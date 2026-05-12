@@ -24,6 +24,26 @@
 					</svg>
 					Cetak {{ selectedUsers.size }} Kartu
 				</button>
+				<button
+					v-if="selectedUsers.size > 0"
+					@click="bulkDeleteUsers"
+					class="btn-outline border-red-300 text-red-700 hover:bg-red-50 flex items-center gap-2"
+				>
+					<svg
+						class="w-4 h-4"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+						/>
+					</svg>
+					Hapus {{ selectedUsers.size }} Pengguna
+				</button>
 				<button @click="openCreate" class="btn-primary">
 					+ Tambah Pengguna
 				</button>
@@ -614,6 +634,45 @@ function printSelectedKartu() {
 	}
 }
 
+async function bulkDeleteUsers() {
+	const ids = Array.from(selectedUsers.value);
+	if (!ids.length) return;
+
+	const { isConfirmed } = await Swal.fire({
+		icon: "warning",
+		title: `Hapus ${ids.length} pengguna?`,
+		text: "Data pengguna yang dipilih akan dihapus permanen.",
+		showCancelButton: true,
+		confirmButtonText: "Hapus Semua",
+		cancelButtonText: "Batal",
+		confirmButtonColor: "#ef4444",
+	});
+	if (!isConfirmed) return;
+
+	try {
+		const res = await api.delete("/users/bulk", { data: { ids } });
+		selectedUsers.value = new Set();
+		await load();
+		Swal.fire({
+			icon: "success",
+			title: "Berhasil",
+			text: `${res.data.deleted || 0} pengguna dihapus.${
+				res.data.skippedSelf
+					? ` ${res.data.skippedSelf} dilewati (akun aktif).`
+					: ""
+			}`,
+			timer: 1600,
+			showConfirmButton: false,
+		});
+	} catch (err) {
+		Swal.fire({
+			icon: "error",
+			title: "Gagal",
+			text: err.response?.data?.message || "Gagal menghapus pengguna.",
+		});
+	}
+}
+
 const defaultForm = () => ({
 	userId: "",
 	nama: "",
@@ -706,6 +765,11 @@ async function load() {
 		const res = await api.get(`/users?${params}`);
 		users.value = res.data.data || [];
 		total.value = res.data.total || 0;
+		// Buang selection yang tidak ada di halaman saat ini
+		const currentIds = new Set(users.value.map((u) => u.id));
+		selectedUsers.value = new Set(
+			Array.from(selectedUsers.value).filter((id) => currentIds.has(id)),
+		);
 	} catch (_) {
 	} finally {
 		loading.value = false;
@@ -864,51 +928,101 @@ async function processExcelImport() {
 }
 
 function kartuHTML(u) {
-	const appName = appConfig.value.app_name || "CBT RSMS";
-	const schoolName = appConfig.value.school_name || "";
+	const cfg = appConfig.value || {};
+	const appName = cfg.app_name || "CBT RSMS";
+	const schoolName = cfg.school_name || "RSMS";
+	const headerLine1 = cfg.card_header_line1 || "KEMENTERIAN AGAMA";
+	const headerLine2 =
+		cfg.card_header_line2 || "PANITIA PENERIMAAN PESERTA DIDIK BARU";
+	const headerLine3 = cfg.card_header_line3 || schoolName;
+	const headerAddress = cfg.card_header_address || "";
+	const logoLeft = cfg.card_logo_left_url || cfg.logo_url || "";
+	const logoRight = cfg.card_logo_right_url || cfg.logo_url || "";
+	const stampUrl = cfg.card_stamp_url || "";
+	const photoUrl = cfg.card_photo_placeholder_url || "";
+	const signLocation = cfg.card_signature_location || "";
+	const signTitle = cfg.card_signature_title || "Ketua Panitia";
+	const signName = cfg.card_signature_name || "Panitia";
+	const signNip = cfg.card_signature_nip || "";
+	const participantNo = u.userId || u.id || "-";
+	const studentName = u.nama || "-";
+	const schoolOrigin = u.kelas || "-";
+	const displayPassword = u.displayPassword || "-";
 	return `
-    <div style="width:340px;border:2px solid #059669;border-radius:12px;overflow:hidden;font-family:'Segoe UI',sans-serif;box-shadow:0 4px 15px rgba(0,0,0,.1);break-inside:avoid;page-break-inside:avoid;">
-      <div style="background:linear-gradient(135deg,#059669,#0284c7);padding:14px 16px;color:white;">
-        <div style="font-size:11px;font-weight:600;letter-spacing:2px;opacity:.8;text-transform:uppercase;">Kartu Peserta Ujian</div>
-        <div style="font-size:16px;font-weight:800;margin-top:2px;">${appName}</div>
-        <div style="font-size:10px;opacity:.75;margin-top:1px;">${schoolName}</div>
+		<div style="width:340px;border:2px solid #111;background:#fff;color:#111;font-family:'Times New Roman',serif;position:relative;break-inside:avoid;page-break-inside:avoid;">
+			<div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #111;padding:4px 6px;gap:6px;">
+				<div style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+					${logoLeft ? `<img src="${esc(logoLeft)}" style="max-width:100%;max-height:100%;object-fit:contain;" />` : ""}
+				</div>
+				<div style="flex:1;text-align:center;line-height:1.1;">
+					<div style="font-weight:700;font-size:7px;">${esc(headerLine1)}</div>
+					<div style="font-weight:700;font-size:8px;">${esc(headerLine2)}</div>
+					<div style="font-weight:700;font-size:9px;">${esc(headerLine3)}</div>
+					${headerAddress ? `<div style="font-size:6.5px;margin-top:1px;">${esc(headerAddress)}</div>` : ""}
+				</div>
+				<div style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+					${logoRight ? `<img src="${esc(logoRight)}" style="max-width:100%;max-height:100%;object-fit:contain;" />` : ""}
+				</div>
       </div>
-      <div style="background:#f0fdf4;padding:14px 16px;border-bottom:1px solid #d1fae5;">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div style="width:52px;height:52px;background:linear-gradient(135deg,#059669,#0284c7);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:22px;font-weight:900;text-transform:uppercase;flex-shrink:0;">
-            ${(u.nama || u.userId || "?").charAt(0).toUpperCase()}
+
+			<div style="border-bottom:1px solid #111;text-align:center;font-weight:700;font-size:10px;letter-spacing:.7px;padding:4px 0;">
+				KARTU PESERTA UJIAN
+			</div>
+
+			<div style="padding:6px 8px 8px;">
+				<table style="width:100%;border-collapse:separate;border-spacing:0 4px;font-size:9.2px;line-height:1.2;">
+					<tr>
+						<td style="width:82px;vertical-align:top;">No Peserta</td>
+						<td style="width:8px;">:</td>
+						<td style="font-weight:700;">${esc(participantNo)}</td>
+					</tr>
+					<tr>
+						<td style="vertical-align:top;">Nama Lengkap</td>
+						<td>:</td>
+						<td style="font-weight:700;">${esc(studentName)}</td>
+					</tr>
+					<tr>
+						<td style="vertical-align:top;">Asal/Kelas</td>
+						<td>:</td>
+						<td style="font-weight:700;">${esc(schoolOrigin)}</td>
+					</tr>
+					<tr>
+						<td style="vertical-align:top;">Password</td>
+						<td>:</td>
+						<td style="font-weight:700;">${esc(displayPassword)}</td>
+					</tr>
+				</table>
+
+				<div style="margin-top:7px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;position:relative;">
+					<div style="border:1px solid #111;width:78px;height:96px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+						${photoUrl ? `<img src="${esc(photoUrl)}" style="width:100%;height:100%;object-fit:cover;" />` : `<div style="font-size:7px;color:#666;text-align:center;line-height:1.3;">Foto<br/>Peserta</div>`}
+					</div>
+
+					<div style="flex:1;text-align:left;position:relative;min-height:96px;">
+						${signLocation ? `<div style="font-size:8px;">${esc(signLocation)}</div>` : ""}
+						<div style="font-size:8px;">${esc(signTitle)},</div>
+						${stampUrl ? `<img src="${esc(stampUrl)}" style="position:absolute;left:-18px;top:6px;width:86px;height:86px;object-fit:contain;opacity:.45;" />` : ""}
+						<div style="height:42px;"></div>
+						<div style="font-size:8.2px;font-weight:700;text-decoration:underline;">${esc(signName)}</div>
+						${signNip ? `<div style="font-size:7.6px;">${esc(signNip)}</div>` : ""}
+					</div>
           </div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:15px;font-weight:800;color:#065f46;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${u.nama || u.userId}</div>
-            <div style="font-size:11px;color:#6b7280;margin-top:2px;">Kelas: <b style="color:#047857;">${u.kelas || "-"}</b></div>
-          </div>
-        </div>
-      </div>
-      <div style="padding:12px 16px;background:white;">
-        <table style="width:100%;border-collapse:collapse;font-size:12px;">
-          <tr>
-            <td style="padding:4px 0;color:#6b7280;width:80px;">ID Siswa</td>
-            <td style="padding:4px 0;font-weight:700;color:#111;font-family:monospace;letter-spacing:.5px;">${u.userId}</td>
-          </tr>
-          <tr>
-            <td style="padding:4px 0;color:#6b7280;">Password</td>
-            <td style="padding:4px 0;font-weight:700;color:#b91c1c;font-family:monospace;">••••••••</td>
-          </tr>
-          <tr>
-            <td style="padding:4px 0;color:#6b7280;">Status</td>
-            <td style="padding:4px 0;">
-              <span style="background:${u.isActive !== false ? "#d1fae5" : "#fee2e2"};color:${u.isActive !== false ? "#065f46" : "#991b1b"};padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;">
-                ${u.isActive !== false ? "AKTIF" : "NON-AKTIF"}
-              </span>
-            </td>
-          </tr>
-        </table>
-      </div>
-      <div style="background:#f8fafc;padding:8px 16px;border-top:1px solid #e2e8f0;text-align:center;">
-        <div style="font-size:10px;color:#94a3b8;">Kartu ini bersifat rahasia. Jangan dibagikan kepada orang lain.</div>
-      </div>
+			</div>
+
+			<div style="border-top:1px solid #111;padding:4px 6px;text-align:center;font-size:7px;">
+				${esc(appName)} - ${esc(schoolName)}
+			</div>
     </div>
   `;
+}
+
+function esc(v) {
+	return String(v || "")
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/\"/g, "&quot;")
+		.replace(/'/g, "&#39;");
 }
 
 function printKartu(u) {

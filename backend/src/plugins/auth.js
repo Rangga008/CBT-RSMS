@@ -10,12 +10,10 @@ async function authDecorators(fastify) {
 		try {
 			await request.jwtVerify();
 		} catch (err) {
-			reply
-				.code(401)
-				.send({
-					success: false,
-					message: "Sesi tidak valid atau kadaluarsa. Silakan login ulang.",
-				});
+			return reply.code(401).send({
+				success: false,
+				message: "Sesi tidak valid atau kadaluarsa. Silakan login ulang.",
+			});
 		}
 	});
 
@@ -30,12 +28,10 @@ async function authDecorators(fastify) {
 					.send({ success: false, message: "Sesi tidak valid." });
 			}
 			if (!roles.includes(request.user?.role)) {
-				return reply
-					.code(403)
-					.send({
-						success: false,
-						message: "Akses ditolak. Role tidak mencukupi.",
-					});
+				return reply.code(403).send({
+					success: false,
+					message: "Akses ditolak. Role tidak mencukupi.",
+				});
 			}
 		};
 	});

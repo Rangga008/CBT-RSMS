@@ -713,7 +713,78 @@ Jawaban: C</pre
 					<!-- Image URL with autocomplete -->
 					<div>
 						<label class="label-field">Gambar Soal (Opsional)</label>
+						<div class="mb-2 flex gap-2">
+							<button
+								type="button"
+								@click="imageInputMode = 'library'"
+								class="px-3 py-1.5 rounded-lg text-xs font-semibold border"
+								:class="
+									imageInputMode === 'library'
+										? 'bg-blue-600 text-white border-blue-600'
+										: 'border-slate-200 text-slate-600'
+								"
+							>
+								Library
+							</button>
+							<button
+								type="button"
+								@click="imageInputMode = 'link'"
+								class="px-3 py-1.5 rounded-lg text-xs font-semibold border"
+								:class="
+									imageInputMode === 'link'
+										? 'bg-blue-600 text-white border-blue-600'
+										: 'border-slate-200 text-slate-600'
+								"
+							>
+								Link
+							</button>
+							<button
+								type="button"
+								@click="imageInputMode = 'upload'"
+								class="px-3 py-1.5 rounded-lg text-xs font-semibold border"
+								:class="
+									imageInputMode === 'upload'
+										? 'bg-blue-600 text-white border-blue-600'
+										: 'border-slate-200 text-slate-600'
+								"
+							>
+								Upload File
+							</button>
+						</div>
+
+						<div v-if="imageInputMode === 'link'" class="mb-2">
+							<input
+								v-model="form.imageUrl"
+								type="text"
+								class="input-field"
+								placeholder="https://... atau /uploads/nama-file.jpg"
+							/>
+						</div>
+
+						<div v-if="imageInputMode === 'upload'" class="mb-2">
+							<div class="flex items-center gap-2">
+								<input
+									ref="questionImageFileRef"
+									type="file"
+									accept="image/png,image/jpeg,image/gif,image/webp"
+									class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-slate-300 rounded-xl p-2 bg-white"
+								/>
+								<button
+									type="button"
+									@click="uploadQuestionImage"
+									:disabled="uploadingQuestionImage"
+									class="px-3 py-2 rounded-lg text-xs font-semibold bg-blue-600 text-white disabled:opacity-50"
+								>
+									{{ uploadingQuestionImage ? "Upload..." : "Upload" }}
+								</button>
+							</div>
+						</div>
+
 						<div class="relative">
+							<div
+								v-if="imageInputMode !== 'library'"
+								class="absolute inset-0 z-10"
+							></div>
 							<input
 								v-model="imageSearch"
 								type="text"
@@ -722,6 +793,7 @@ Jawaban: C</pre
 								@input="onImageSearch"
 								@focus="onImageSearch"
 								@blur="hideImageDropdown"
+								:disabled="imageInputMode !== 'library'"
 								autocomplete="off"
 							/>
 							<!-- Dropdown -->
@@ -1856,10 +1928,15 @@ async function save() {
 			showConfirmButton: false,
 		});
 	} catch (err) {
+		const fieldErrors = err.response?.data?.errors?.fieldErrors;
+		const firstFieldError = fieldErrors
+			? Object.values(fieldErrors).flat().filter(Boolean)[0]
+			: "";
 		Swal.fire({
 			icon: "error",
 			title: "Gagal",
-			text: err.response?.data?.message || "Terjadi kesalahan.",
+			text:
+				firstFieldError || err.response?.data?.message || "Terjadi kesalahan.",
 		});
 	} finally {
 		saving.value = false;
@@ -1892,6 +1969,9 @@ const allImages = ref([]);
 const imageSearch = ref("");
 const showImageDropdown = ref(false);
 const imageSearchResults = ref([]);
+const imageInputMode = ref("library");
+const questionImageFileRef = ref(null);
+const uploadingQuestionImage = ref(false);
 
 async function loadImages() {
 	try {
@@ -1921,6 +2001,44 @@ function hideImageDropdown() {
 	setTimeout(() => {
 		showImageDropdown.value = false;
 	}, 200);
+}
+
+async function uploadQuestionImage() {
+	const file = questionImageFileRef.value?.files?.[0];
+	if (!file) {
+		Swal.fire({
+			icon: "warning",
+			title: "Pilih file dulu",
+			text: "Pilih gambar sebelum upload.",
+		});
+		return;
+	}
+
+	uploadingQuestionImage.value = true;
+	try {
+		const fd = new FormData();
+		fd.append("file", file);
+		const res = await api.post("/uploads/image", fd, {
+			headers: { "Content-Type": "multipart/form-data" },
+		});
+		form.value.imageUrl = res.data.url;
+		imageSearch.value = file.name;
+		await loadImages();
+		Swal.fire({
+			icon: "success",
+			title: "Upload berhasil",
+			timer: 1200,
+			showConfirmButton: false,
+		});
+	} catch (err) {
+		Swal.fire({
+			icon: "error",
+			title: "Upload gagal",
+			text: err.response?.data?.message || "Tidak bisa upload gambar.",
+		});
+	} finally {
+		uploadingQuestionImage.value = false;
+	}
 }
 
 watch(examId, (val) => {

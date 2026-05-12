@@ -228,6 +228,35 @@ export default async function usersRoutes(fastify) {
 		},
 	);
 
+	// ─── DELETE /api/v1/users/bulk ───────────────────────────
+	fastify.delete(
+		"/users/bulk",
+		{ preHandler: fastify.requireRole("Admin") },
+		async (request, reply) => {
+			const { ids } = z
+				.object({ ids: z.array(z.string().min(1)).min(1) })
+				.parse(request.body);
+
+			const filteredIds = ids.filter((id) => id !== request.user.id);
+			if (!filteredIds.length) {
+				return reply.code(400).send({
+					success: false,
+					message: "Tidak ada user yang bisa dihapus.",
+				});
+			}
+
+			const { count } = await prisma.user.deleteMany({
+				where: { id: { in: filteredIds } },
+			});
+
+			return reply.send({
+				success: true,
+				deleted: count,
+				skippedSelf: ids.length - filteredIds.length,
+			});
+		},
+	);
+
 	// ─── POST /api/v1/users/bulk ─────────────────────────────
 	// Import user massal dari array
 	fastify.post(

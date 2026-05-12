@@ -10,6 +10,7 @@ import fastifyStatic from "@fastify/static";
 import fastifyJwt from "@fastify/jwt";
 import { prisma, redis } from "./lib/db.js";
 import path from "path";
+import fs from "node:fs";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -71,8 +72,17 @@ await app.register(fastifyMultipart, {
 });
 
 // Static files (upload folder)
+const uploadRoot = path.join(
+	__dirname,
+	"..",
+	process.env.UPLOAD_DIR || "uploads",
+);
+if (!fs.existsSync(uploadRoot)) {
+	fs.mkdirSync(uploadRoot, { recursive: true });
+}
+
 await app.register(fastifyStatic, {
-	root: path.join(__dirname, "..", process.env.UPLOAD_DIR || "uploads"),
+	root: uploadRoot,
 	prefix: "/uploads/",
 });
 

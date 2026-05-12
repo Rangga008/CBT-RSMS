@@ -1,15 +1,56 @@
 import { z } from "zod";
 import { prisma } from "../lib/db.js";
 
+function isValidImageUrl(value) {
+	if (!value || typeof value !== "string") return false;
+	const trimmed = value.trim();
+	if (
+		trimmed.startsWith("/uploads/") ||
+		trimmed.startsWith("uploads/") ||
+		/^https?:\/\//i.test(trimmed)
+	)
+		return true;
+
+	// Support common relative image paths/extensions
+	if (/\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(trimmed)) return true;
+
+	try {
+		new URL(trimmed);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+function buildQuestionCode(examId, index) {
+	const examKey = String(examId || "EXAM")
+		.replace(/[^a-zA-Z0-9]/g, "")
+		.slice(-8)
+		.toUpperCase();
+	const seq = String(index).padStart(3, "0");
+	const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+	return `Q-${examKey}-${seq}-${rand}`;
+}
+
 const questionSchema = z.object({
 	type: z.enum(["PG", "PG_KOMPLEKS", "BS", "JODOH", "Esai"]),
 	content: z.string().min(1),
-	imageUrl: z.string().url().optional().nullable(),
+	imageUrl: z
+		.preprocess((v) => {
+			if (v === "" || v === null || v === undefined) return null;
+			if (typeof v === "string") return v.trim();
+			return null;
+		}, z.any())
+		.pipe(z.string().optional().nullable())
+		.transform((v) => {
+			if (!v) return null;
+			return isValidImageUrl(v) ? v : null;
+		}),
 	options: z.array(z.any()).default([]),
 	correctAnswer: z.any().optional().nullable(),
 	isRequired: z.boolean().default(true),
-	bobot: z.number().positive().default(1),
-	order: z.number().int().default(0),
+	bobot: z.coerce.number().positive().catch(1).default(1),
+	order: z.coerce.number().int().catch(0).default(0),
 });
 
 // Fisher-Yates shuffle helper
@@ -197,12 +238,51 @@ export default async function questionsRoutes(fastify) {
 			const count = await prisma.question.count({
 				where: { examId: request.params.examId },
 			});
-			const questionCode = `Q-${String(count + 1).padStart(3, "0")}`;
 
-			const question = await prisma.question.create({
-				data: { ...parsed.data, examId: request.params.examId, questionCode },
-			});
+			let question = null;
+			for (let attempt = 0; attempt < 5; attempt++) {
+				const questionCode = buildQuestionCode(
+					request.params.examId,
+					count + 1 + attempt,
+				);
+				try {
+					question = await prisma.question.create({
+						data: {
+							...parsed.data,
+							examId: request.params.examId,
+							questionCode,
+						},
+					});
+					break;
+				} catch (err) {
+					if (!(err?.code === "P2002")) throw err;
+				}
+			}
+
+			if (!question) {
+				return reply.code(409).send({
+					success: false,
+					message: "Gagal membuat kode soal unik. Silakan coba lagi.",
+				});
+			}
 			return reply.code(201).send({ success: true, data: question });
+		},
+	);
+
+	// ─── PATCH /api/v1/questions/:id ─────────────────────────
+	fastify.get(
+		"/questions/:id",
+		{ preHandler: fastify.requireRole("Admin", "Guru") },
+		async (request, reply) => {
+			const question = await prisma.question.findUnique({
+				where: { id: request.params.id },
+			});
+			if (!question) {
+				return reply
+					.code(404)
+					.send({ success: false, message: "Soal tidak ditemukan." });
+			}
+			return reply.send({ success: true, data: question });
 		},
 	);
 
@@ -213,9 +293,11 @@ export default async function questionsRoutes(fastify) {
 		async (request, reply) => {
 			const parsed = questionSchema.partial().safeParse(request.body);
 			if (!parsed.success) {
-				return reply
-					.code(400)
-					.send({ success: false, message: "Data tidak valid." });
+				return reply.code(400).send({
+					success: false,
+					message: "Data tidak valid.",
+					errors: parsed.error.flatten(),
+				});
 			}
 			const question = await prisma.question.update({
 				where: { id: request.params.id },
@@ -267,7 +349,7 @@ export default async function questionsRoutes(fastify) {
 			const data = questions.data.map((q, i) => ({
 				...q,
 				examId: request.params.examId,
-				questionCode: `Q-${String(count + i + 1).padStart(3, "0")}`,
+				questionCode: buildQuestionCode(request.params.examId, count + i + 1),
 				order: q.order || count + i + 1,
 			}));
 			await prisma.question.createMany({ data });

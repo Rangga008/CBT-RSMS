@@ -64,11 +64,14 @@ export default async function imagesRoutes(fastify) {
 			}
 
 			const existing = await prisma.image.findUnique({ where: { url } });
-			if (existing)
-				return reply.code(409).send({
-					success: false,
+			if (existing) {
+				return reply.send({
+					success: true,
+					data: existing,
 					message: "URL gambar sudah ada di perpustakaan.",
+					duplicate: true,
 				});
+			}
 
 			const image = await prisma.image.create({
 				data: {
