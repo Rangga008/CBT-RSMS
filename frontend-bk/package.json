@@ -1,0 +1,29 @@
+{
+	"name": "bk-rsms-frontend",
+	"version": "1.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite --port 5174",
+		"build": "vite build",
+		"preview": "vite preview --port 5174"
+	},
+	"dependencies": {
+		"@vueuse/core": "^10.11.0",
+		"axios": "^1.7.7",
+		"chart.js": "^4.4.4",
+		"html5-qrcode": "^2.3.8",
+		"pinia": "^2.2.2",
+		"qrcode": "^1.5.4",
+		"vue": "^3.5.10",
+		"vue-router": "^4.4.5",
+		"xlsx": "^0.18.5"
+	},
+	"devDependencies": {
+		"@tailwindcss/forms": "^0.5.9",
+		"@vitejs/plugin-vue": "^5.1.4",
+		"autoprefixer": "^10.4.20",
+		"postcss": "^8.4.47",
+		"tailwindcss": "^3.4.13",
+		"vite": "^5.4.8"
+	}
+}
