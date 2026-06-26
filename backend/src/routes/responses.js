@@ -24,9 +24,16 @@ export default async function responsesRoutes(fastify) {
 			});
 
 			if (existing?.status === "Submitted" || existing?.status === "Graded") {
-				return reply
-					.code(400)
-					.send({ success: false, message: "Ujian sudah dikumpulkan." });
+				return reply.send({
+					success: true,
+					message: "Ujian sudah dikumpulkan.",
+					data: {
+						responseId: existing.id,
+						score: existing.score,
+						hasEssay: false,
+						detail: [],
+					},
+				});
 			}
 
 			if (existing) {
@@ -412,7 +419,7 @@ export default async function responsesRoutes(fastify) {
 	);
 
 	// ─── POST /api/v1/responses/:id/unlock ───────────────────
-	// Admin/Guru: buka akses siswa yang terblokir (reset violationCount tanpa hapus jawaban)
+	// Admin/Guru: buka akses siswa yang terblokir (reset violationCount + kembalikan status InProgress)
 	fastify.post(
 		"/responses/:id/unlock",
 		{ preHandler: fastify.requireRole("Admin", "Guru") },
@@ -425,20 +432,74 @@ export default async function responsesRoutes(fastify) {
 					.code(404)
 					.send({ success: false, message: "Response tidak ditemukan." });
 
-			// Reset violation count supaya siswa bisa lanjut
+			// Reset violation count supaya tidak auto-submit lagi
 			await prisma.examLog.updateMany({
 				where: { userId: response.userId, examId: response.examId },
 				data: { violationCount: 0 },
 			});
 
-			// Jika status sudah bukan InProgress, kembalikan ke InProgress
-			if (response.status === "InProgress") {
-				// already in progress, just violations cleared
+			// Kembalikan status ke InProgress agar siswa bisa melanjutkan
+			// (jawaban tetap tersimpan di answersJson)
+			if (response.status !== "InProgress") {
+				await prisma.response.update({
+					where: { id: request.params.id },
+					data: {
+						status: "InProgress",
+						submitTime: null,
+						score: null,
+					},
+				});
 			}
 
 			return reply.send({
 				success: true,
 				message: "Akses siswa telah dibuka. Siswa dapat melanjutkan ujian.",
+			});
+		},
+	);
+
+	// ─── POST /api/v1/responses/bulk-unlock ──────────────────
+	// Admin/Guru: buka blokir beberapa siswa sekaligus
+	fastify.post(
+		"/responses/bulk-unlock",
+		{ preHandler: fastify.requireRole("Admin", "Guru") },
+		async (request, reply) => {
+			const { ids } = z
+				.object({ ids: z.array(z.string()).min(1) })
+				.parse(request.body);
+
+			const responses = await prisma.response.findMany({
+				where: { id: { in: ids } },
+				select: { id: true, userId: true, examId: true },
+			});
+
+			if (responses.length === 0)
+				return reply.code(404).send({
+					success: false,
+					message: "Tidak ada response yang ditemukan.",
+				});
+
+			// Reset violation count untuk semua siswa
+			for (const r of responses) {
+				await prisma.examLog.updateMany({
+					where: { userId: r.userId, examId: r.examId },
+					data: { violationCount: 0 },
+				});
+			}
+
+			// Kembalikan status ke InProgress, hapus submitTime & score
+			await prisma.response.updateMany({
+				where: { id: { in: ids } },
+				data: {
+					status: "InProgress",
+					submitTime: null,
+					score: null,
+				},
+			});
+
+			return reply.send({
+				success: true,
+				message: `${responses.length} siswa berhasil dibuka blokirnya.`,
 			});
 		},
 	);
@@ -540,41 +601,6 @@ export default async function responsesRoutes(fastify) {
 			});
 
 			return reply.send({ success: true, data: updated, newScore: finalScore });
-		},
-	);
-
-	// ─── POST /api/v1/responses/bulk-unlock ──────────────────
-	// Admin/Guru: buka blokir beberapa siswa curang sekaligus
-	fastify.post(
-		"/responses/bulk-unlock",
-		{ preHandler: fastify.requireRole("Admin", "Guru") },
-		async (request, reply) => {
-			const { ids } = z
-				.object({ ids: z.array(z.string()).min(1) })
-				.parse(request.body);
-
-			const responses = await prisma.response.findMany({
-				where: { id: { in: ids } },
-				select: { id: true, userId: true, examId: true },
-			});
-
-			if (responses.length === 0)
-				return reply.code(404).send({
-					success: false,
-					message: "Tidak ada response yang ditemukan.",
-				});
-
-			for (const r of responses) {
-				await prisma.examLog.updateMany({
-					where: { userId: r.userId, examId: r.examId },
-					data: { violationCount: 0 },
-				});
-			}
-
-			return reply.send({
-				success: true,
-				message: `${responses.length} siswa berhasil dibuka blokirnya.`,
-			});
 		},
 	);
 

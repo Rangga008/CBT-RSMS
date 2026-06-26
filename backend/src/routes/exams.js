@@ -91,19 +91,35 @@ export default async function examsRoutes(fastify) {
 				});
 			}
 
-			// Generate exam code
-			const count = await prisma.exam.count();
-			const examCode = `EXM-${String(count + 1).padStart(3, "0")}`;
+			let created = null;
+			let seq = (await prisma.exam.count()) + 1;
+			for (let i = 0; i < 8; i++) {
+				const examCode = `EXM-${String(seq + i).padStart(3, "0")}`;
+				try {
+					created = await prisma.exam.create({
+						data: {
+							...parsed.data,
+							examCode,
+							date: new Date(parsed.data.date),
+							endDate: parsed.data.endDate
+								? new Date(parsed.data.endDate)
+								: null,
+						},
+					});
+					break;
+				} catch (err) {
+					if (err?.code !== "P2002") throw err;
+				}
+			}
 
-			const exam = await prisma.exam.create({
-				data: {
-					...parsed.data,
-					examCode,
-					date: new Date(parsed.data.date),
-					endDate: parsed.data.endDate ? new Date(parsed.data.endDate) : null,
-				},
-			});
-			return reply.code(201).send({ success: true, data: exam });
+			if (!created) {
+				return reply.code(409).send({
+					success: false,
+					message: "Gagal membuat kode ujian unik. Coba lagi.",
+				});
+			}
+
+			return reply.code(201).send({ success: true, data: created });
 		},
 	);
 

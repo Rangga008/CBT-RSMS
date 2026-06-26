@@ -26,6 +26,9 @@ const app = Fastify({
 	},
 });
 
+// Backward-compatible alias in case older snippets still reference `fastify`.
+const fastify = app;
+
 redis.on("error", (err) =>
 	app.log.warn("Redis tidak tersedia (opsional):", err.message),
 );
@@ -77,8 +80,13 @@ const uploadRoot = path.join(
 	"..",
 	process.env.UPLOAD_DIR || "uploads",
 );
-if (!fs.existsSync(uploadRoot)) {
+try {
 	fs.mkdirSync(uploadRoot, { recursive: true });
+} catch (err) {
+	app.log.error(
+		`Gagal membuat folder upload di ${uploadRoot}: ${err?.message || err}`,
+	);
+	throw err;
 }
 
 await app.register(fastifyStatic, {
