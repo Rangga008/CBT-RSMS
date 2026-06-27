@@ -72,7 +72,60 @@ export default async function siswaRoutes(fastify) {
 		return { success: true, data: list.map((s) => s.kelas) };
 	});
 
-	// POST /api/v1/siswa
+	// POST /api/v1/siswa/import — bulk upsert by NISN
+	fastify.post("/siswa/import", adminBk, async (request, reply) => {
+		const itemSchema = z.object({
+			nisn: z.string().min(4).max(20),
+			nama: z.string().min(2).max(100),
+			kelas: z.string().min(1).max(30),
+			jenisKelamin: z.enum(["L", "P"]).default("L"),
+			tanggalLahir: z.string().optional().nullable(),
+			agama: z.string().optional().nullable(),
+			namaAyah: z.string().optional().nullable(),
+			namaIbu: z.string().optional().nullable(),
+			noHp: z.string().optional().nullable(),
+			alamat: z.string().optional().nullable(),
+		});
+		const bodySchema = z.object({ data: z.array(itemSchema).min(1).max(2000) });
+		const parsed = bodySchema.safeParse(request.body);
+		if (!parsed.success)
+			return reply
+				.code(400)
+				.send({ success: false, message: parsed.error.errors[0].message });
+
+		let ditambah = 0;
+		let diperbarui = 0;
+		for (const item of parsed.data.data) {
+			const { tanggalLahir, ...rest } = item;
+			const existing = await prisma.siswa.findUnique({
+				where: { nisn: rest.nisn },
+			});
+			if (existing) {
+				await prisma.siswa.update({
+					where: { nisn: rest.nisn },
+					data: {
+						...rest,
+						tanggalLahir: tanggalLahir
+							? new Date(tanggalLahir)
+							: existing.tanggalLahir,
+					},
+				});
+				diperbarui++;
+			} else {
+				await prisma.siswa.create({
+					data: {
+						...rest,
+						tanggalLahir: tanggalLahir ? new Date(tanggalLahir) : null,
+					},
+				});
+				ditambah++;
+			}
+		}
+		return {
+			success: true,
+			data: { ditambah, diperbarui, total: ditambah + diperbarui },
+		};
+	});
 	fastify.post("/siswa", adminBk, async (request, reply) => {
 		const schema = z.object({
 			nisn: z.string().min(5).max(20),

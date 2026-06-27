@@ -50,113 +50,126 @@
 			<!-- Navigation -->
 			<nav class="flex-1 overflow-y-auto scrollbar-hide px-3 py-2 space-y-0.5">
 				<p class="nav-section">Utama</p>
-				<router-link
-					to="/dashboard"
-					class="nav-item"
-					:class="{ active: $route.path === '/dashboard' }"
-					@click="closeSidebar"
-				>
-					<i class="fas fa-chart-pie w-4 text-center"></i> Dashboard
-				</router-link>
-				<router-link
-					to="/absensi"
-					class="nav-item"
-					:class="{
-						active:
-							$route.path.startsWith('/absensi') && $route.path === '/absensi',
-					}"
-					@click="closeSidebar"
-				>
-					<i class="fas fa-qrcode w-4 text-center"></i> Absensi Harian
-				</router-link>
-				<router-link
-					to="/absensi/rekap"
-					class="nav-item"
-					:class="{ active: $route.path === '/absensi/rekap' }"
-					@click="closeSidebar"
-				>
-					<i class="fas fa-calendar-check w-4 text-center"></i> Rekap Absensi
-				</router-link>
-				<router-link
-					to="/siswa"
-					class="nav-item"
-					:class="{ active: $route.path === '/siswa' }"
-					@click="closeSidebar"
-				>
-					<i class="fas fa-user-graduate w-4 text-center"></i> Data Siswa
-				</router-link>
 
-				<p class="nav-section mt-3">Bimbingan Konseling</p>
-				<router-link
-					to="/bk/poin"
-					class="nav-item"
-					:class="{ active: $route.path === '/bk/poin' }"
-					@click="closeSidebar"
-				>
-					<i class="fas fa-star w-4 text-center"></i> Poin Siswa
-				</router-link>
-				<router-link
-					to="/bk/kasus"
-					class="nav-item"
-					:class="{ active: $route.path === '/bk/kasus' }"
-					@click="closeSidebar"
-				>
-					<i class="fas fa-folder-open w-4 text-center"></i> Kasus Siswa
-				</router-link>
-				<router-link
-					to="/bk/kunjungan"
-					class="nav-item"
-					:class="{ active: $route.path === '/bk/kunjungan' }"
-					@click="closeSidebar"
-				>
-					<i class="fas fa-home w-4 text-center"></i> Kunjungan Rumah
-				</router-link>
-
-				<p class="nav-section mt-3">Master Data BK</p>
-				<router-link
-					to="/bk/jenis-pelanggaran"
-					class="nav-item"
-					:class="{ active: $route.path === '/bk/jenis-pelanggaran' }"
-					@click="closeSidebar"
-				>
-					<i class="fas fa-exclamation-triangle w-4 text-center"></i> Jenis
-					Pelanggaran
-				</router-link>
-				<router-link
-					to="/bk/jenis-prestasi"
-					class="nav-item"
-					:class="{ active: $route.path === '/bk/jenis-prestasi' }"
-					@click="closeSidebar"
-				>
-					<i class="fas fa-trophy w-4 text-center"></i> Jenis Prestasi
-				</router-link>
-				<router-link
-					to="/bk/jenis-kasus"
-					class="nav-item"
-					:class="{ active: $route.path === '/bk/jenis-kasus' }"
-					@click="closeSidebar"
-				>
-					<i class="fas fa-tags w-4 text-center"></i> Jenis Kasus
-				</router-link>
-
-				<template v-if="auth.isAdmin">
-					<p class="nav-section mt-3">Pengaturan</p>
+				<!-- Siswa hanya tampil menu absensi sendiri -->
+				<template v-if="auth.isSiswa">
 					<router-link
-						to="/users"
+						to="/absensi"
 						class="nav-item"
-						:class="{ active: $route.path === '/users' }"
+						:class="{ active: $route.path === '/absensi' }"
 						@click="closeSidebar"
 					>
-						<i class="fas fa-users-cog w-4 text-center"></i> Manajemen User
+						<i class="fas fa-qrcode w-4 text-center"></i> Absensi Saya
 					</router-link>
+				</template>
+
+				<!-- Menu untuk staff (admin/bk/guru) -->
+				<template v-else>
 					<router-link
-						to="/config"
+						to="/dashboard"
 						class="nav-item"
-						:class="{ active: $route.path === '/config' }"
+						:class="{ active: $route.path === '/dashboard' }"
 						@click="closeSidebar"
 					>
-						<i class="fas fa-sliders-h w-4 text-center"></i> Konfigurasi
+						<i class="fas fa-chart-pie w-4 text-center"></i> Dashboard
 					</router-link>
+					<router-link
+						to="/absensi"
+						class="nav-item"
+						:class="{ active: $route.path === '/absensi' }"
+						@click="closeSidebar"
+					>
+						<i class="fas fa-qrcode w-4 text-center"></i> Absensi Harian
+					</router-link>
+					<router-link
+						to="/absensi/rekap"
+						class="nav-item"
+						:class="{ active: $route.path === '/absensi/rekap' }"
+						@click="closeSidebar"
+					>
+						<i class="fas fa-calendar-check w-4 text-center"></i> Rekap Absensi
+					</router-link>
+					<router-link
+						to="/siswa"
+						class="nav-item"
+						:class="{ active: $route.path === '/siswa' }"
+						@click="closeSidebar"
+					>
+						<i class="fas fa-user-graduate w-4 text-center"></i> Data Siswa
+					</router-link>
+
+					<p class="nav-section mt-3">Bimbingan Konseling</p>
+					<router-link
+						to="/bk/poin"
+						class="nav-item"
+						:class="{ active: $route.path === '/bk/poin' }"
+						@click="closeSidebar"
+					>
+						<i class="fas fa-star w-4 text-center"></i> Poin Siswa
+					</router-link>
+					<router-link
+						to="/bk/kasus"
+						class="nav-item"
+						:class="{ active: $route.path === '/bk/kasus' }"
+						@click="closeSidebar"
+					>
+						<i class="fas fa-folder-open w-4 text-center"></i> Kasus Siswa
+					</router-link>
+					<router-link
+						to="/bk/kunjungan"
+						class="nav-item"
+						:class="{ active: $route.path === '/bk/kunjungan' }"
+						@click="closeSidebar"
+					>
+						<i class="fas fa-home w-4 text-center"></i> Kunjungan Rumah
+					</router-link>
+
+					<template v-if="auth.isAdmin">
+						<p class="nav-section mt-3">Master Data BK</p>
+						<router-link
+							to="/bk/jenis-pelanggaran"
+							class="nav-item"
+							:class="{ active: $route.path === '/bk/jenis-pelanggaran' }"
+							@click="closeSidebar"
+						>
+							<i class="fas fa-exclamation-triangle w-4 text-center"></i> Jenis
+							Pelanggaran
+						</router-link>
+						<router-link
+							to="/bk/jenis-prestasi"
+							class="nav-item"
+							:class="{ active: $route.path === '/bk/jenis-prestasi' }"
+							@click="closeSidebar"
+						>
+							<i class="fas fa-trophy w-4 text-center"></i> Jenis Prestasi
+						</router-link>
+						<router-link
+							to="/bk/jenis-kasus"
+							class="nav-item"
+							:class="{ active: $route.path === '/bk/jenis-kasus' }"
+							@click="closeSidebar"
+						>
+							<i class="fas fa-tags w-4 text-center"></i> Jenis Kasus
+						</router-link>
+
+						<p class="nav-section mt-3">Pengaturan</p>
+						<router-link
+							to="/users"
+							class="nav-item"
+							:class="{ active: $route.path === '/users' }"
+							@click="closeSidebar"
+						>
+							<i class="fas fa-users-cog w-4 text-center"></i> Manajemen User
+						</router-link>
+						<router-link
+							to="/config"
+							class="nav-item"
+							:class="{ active: $route.path === '/config' }"
+							@click="closeSidebar"
+						>
+							<i class="fas fa-sliders-h w-4 text-center"></i> Konfigurasi
+						</router-link>
+					</template>
 				</template>
 			</nav>
 

@@ -153,6 +153,8 @@ const routeFiles = [
 	"./routes/uploads.js",
 	"./routes/monitor.js",
 	"./routes/images.js",
+	"./routes/internal.js",
+	"./routes/sync.js",
 ];
 
 for (const routeFile of routeFiles) {

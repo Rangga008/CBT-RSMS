@@ -89,9 +89,7 @@
 							<!-- Dokumen progress -->
 							<span v-if="k.dokumenList?.length">
 								<i class="fas fa-file-alt mr-1"></i>
-								{{ completedDocs(k.dokumenList) }}/{{
-									k.dokumenList.length
-								}}
+								{{ completedDocs(k.dokumenList) }}/{{ k.dokumenList.length }}
 								dokumen
 							</span>
 						</div>
@@ -559,7 +557,7 @@ async function uploadDokumen(event, index) {
 		const { data } = await api.post("/upload", formData, {
 			headers: { "Content-Type": "multipart/form-data" },
 		});
-		const updatedDokumen = [...selectedKunjungan.value.dokumenList];
+		const updatedDokumen = [...(selectedKunjungan.value.dokumenList || [])];
 		updatedDokumen[index] = { ...updatedDokumen[index], url: data.url };
 		await api.put(`/bk/kunjungan/${selectedKunjungan.value.id}`, {
 			dokumenList: updatedDokumen,

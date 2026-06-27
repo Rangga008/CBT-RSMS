@@ -13,6 +13,7 @@ export default async function poinRoutes(fastify) {
 			dari,
 			sampai,
 			kelas,
+			search,
 			page = 1,
 			limit = 50,
 		} = request.query;
@@ -22,6 +23,14 @@ export default async function poinRoutes(fastify) {
 		if (dari && sampai)
 			where.tanggal = { gte: new Date(dari), lte: new Date(sampai) };
 		if (kelas) where.siswa = { kelas: { in: kelas.split(",") } };
+		if (search)
+			where.siswa = {
+				...(where.siswa || {}),
+				OR: [
+					{ nama: { contains: search, mode: "insensitive" } },
+					{ nisn: { contains: search } },
+				],
+			};
 
 		const [list, total] = await Promise.all([
 			prisma.poinSiswa.findMany({

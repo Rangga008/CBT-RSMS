@@ -9,9 +9,21 @@
 					Kelola database siswa untuk sistem BK & Absensi
 				</p>
 			</div>
-			<button @click="openAdd" class="btn-primary">
-				<i class="fas fa-user-plus"></i> Tambah Siswa
-			</button>
+			<div class="flex gap-2">
+				<button @click="triggerImport" class="btn-secondary">
+					<i class="fas fa-file-excel"></i> Import Excel
+				</button>
+				<input
+					ref="importFileInput"
+					type="file"
+					accept=".xlsx,.xls,.csv"
+					class="hidden"
+					@change="handleImportFile"
+				/>
+				<button @click="openAdd" class="btn-primary">
+					<i class="fas fa-user-plus"></i> Tambah Siswa
+				</button>
+			</div>
 		</div>
 
 		<!-- Filters -->
@@ -188,6 +200,92 @@
 				</div>
 			</div>
 		</div>
+		<!-- Import Modal -->
+		<div
+			v-if="showImportModal"
+			class="modal-overlay"
+			@click.self="showImportModal = false"
+		>
+			<div class="modal modal-lg">
+				<div class="modal-header">
+					<h3 class="font-bold text-slate-800">
+						<i class="fas fa-file-excel text-green-500"></i> Import Siswa dari
+						Excel
+					</h3>
+					<button @click="showImportModal = false" class="text-slate-400">
+						<i class="fas fa-times"></i>
+					</button>
+				</div>
+				<div class="modal-body space-y-4">
+					<div
+						class="bg-blue-50 border border-blue-200 text-blue-700 rounded-lg p-3 text-sm"
+					>
+						<p class="font-semibold mb-1">
+							Format kolom Excel yang diperlukan:
+						</p>
+						<p class="font-mono text-xs">
+							NISN | Nama | Kelas | JenisKelamin (L/P) | TanggalLahir (opsional)
+							| Agama | NamaAyah | NamaIbu | NoHP | Alamat
+						</p>
+					</div>
+					<div v-if="importPreview.length">
+						<p class="text-sm text-slate-600 mb-2">
+							Preview
+							<strong>{{ importPreview.length }}</strong> data:
+						</p>
+						<div class="table-wrap max-h-64">
+							<table class="table text-xs">
+								<thead>
+									<tr>
+										<th>NISN</th>
+										<th>Nama</th>
+										<th>Kelas</th>
+										<th>L/P</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr v-for="(row, i) in importPreview.slice(0, 10)" :key="i">
+										<td class="font-mono">{{ row.nisn }}</td>
+										<td>{{ row.nama }}</td>
+										<td>{{ row.kelas }}</td>
+										<td>{{ row.jenisKelamin }}</td>
+									</tr>
+									<tr v-if="importPreview.length > 10">
+										<td colspan="4" class="text-center text-slate-400">
+											... dan {{ importPreview.length - 10 }} data lainnya
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+					<div
+						v-if="importResult"
+						class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm text-emerald-700"
+					>
+						<i class="fas fa-check-circle"></i>
+						Import selesai:
+						<strong>{{ importResult.ditambah }}</strong> ditambah,
+						<strong>{{ importResult.diperbarui }}</strong> diperbarui (total
+						{{ importResult.total }})
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button @click="showImportModal = false" class="btn-secondary">
+						Tutup
+					</button>
+					<button
+						v-if="importPreview.length && !importResult"
+						@click="confirmImport"
+						:disabled="importLoading"
+						class="btn-primary"
+					>
+						<i v-if="importLoading" class="fas fa-circle-notch fa-spin"></i>
+						Konfirmasi Import {{ importPreview.length }} Siswa
+					</button>
+				</div>
+			</div>
+		</div>
 	</div>
 </template>
 
@@ -205,6 +303,14 @@ const showModal = ref(false);
 const editing = ref(null);
 const saveLoading = ref(false);
 const form = ref({});
+
+// Import state
+const importFileInput = ref(null);
+const showImportModal = ref(false);
+const importPreview = ref([]);
+const importResult = ref(null);
+const importLoading = ref(false);
+
 let debounceTimer = null;
 
 function debouncedLoad() {
@@ -244,6 +350,71 @@ function openEdit(s) {
 		tanggalLahir: s.tanggalLahir ? s.tanggalLahir.split("T")[0] : "",
 	};
 	showModal.value = true;
+}
+
+function triggerImport() {
+	importPreview.value = [];
+	importResult.value = null;
+	importFileInput.value.click();
+}
+
+async function handleImportFile(e) {
+	const file = e.target.files[0];
+	if (!file) return;
+	e.target.value = "";
+	try {
+		const { read, utils } = await import("xlsx");
+		const buf = await file.arrayBuffer();
+		const wb = read(buf);
+		const ws = wb.Sheets[wb.SheetNames[0]];
+		const rows = utils.sheet_to_json(ws, { defval: "" });
+
+		// Normalize column names (case-insensitive)
+		const normalize = (key) => key.toLowerCase().replace(/[\s_\-\.]/g, "");
+
+		importPreview.value = rows
+			.map((row) => {
+				const entry = {};
+				Object.entries(row).forEach(([k, v]) => {
+					entry[normalize(k)] = String(v || "").trim();
+				});
+				return {
+					nisn: entry.nisn || entry.nis || "",
+					nama: entry.nama || entry.namalengkap || entry.namasiswa || "",
+					kelas: entry.kelas || entry.rombel || "",
+					jenisKelamin: ["p", "perempuan"].includes(
+						(entry.jeniskelamin || entry.jk || entry.l || "L").toLowerCase(),
+					)
+						? "P"
+						: "L",
+					tanggalLahir: entry.tanggallahir || entry.tgllahir || null,
+					agama: entry.agama || null,
+					namaAyah: entry.namaayah || entry.ayah || null,
+					namaIbu: entry.namaibu || entry.ibu || null,
+					noHp: entry.nohp || entry.hp || entry.telp || null,
+					alamat: entry.alamat || null,
+				};
+			})
+			.filter((r) => r.nisn && r.nama && r.kelas);
+		showImportModal.value = true;
+	} catch (err) {
+		alert("Gagal membaca file: " + err.message);
+	}
+}
+
+async function confirmImport() {
+	importLoading.value = true;
+	try {
+		const { data } = await api.post("/siswa/import", {
+			data: importPreview.value,
+		});
+		importResult.value = data.data;
+		await load();
+	} catch (e) {
+		alert(e.response?.data?.message || "Gagal import");
+	} finally {
+		importLoading.value = false;
+	}
 }
 
 async function saveSiswa() {

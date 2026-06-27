@@ -375,6 +375,43 @@
 				</div>
 			</form>
 		</div>
+
+		<!-- Sync dari BK -->
+		<div
+			class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 max-w-3xl mt-6"
+		>
+			<p class="text-sm font-bold text-slate-700 mb-1">
+				🔄 Sinkronisasi Siswa dari BK RSMS
+			</p>
+			<p class="text-xs text-slate-400 mb-4">
+				Tarik data siswa aktif dari aplikasi BK RSMS ke daftar pengguna CBT
+				(role: Siswa). Siswa baru akan dibuat dengan password = NISN.
+			</p>
+			<div
+				v-if="syncResult"
+				class="mb-3 rounded-lg p-3 text-sm"
+				:class="
+					syncResult.success
+						? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+						: 'bg-red-50 text-red-700 border border-red-200'
+				"
+			>
+				<span v-if="syncResult.success">
+					✅ Selesai: <strong>{{ syncResult.data?.ditambah }}</strong> ditambah,
+					<strong>{{ syncResult.data?.diperbarui }}</strong> diperbarui (total
+					{{ syncResult.data?.total }} siswa)
+				</span>
+				<span v-else>❌ {{ syncResult.message }}</span>
+			</div>
+			<button
+				@click="syncFromBk"
+				:disabled="syncing"
+				class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition disabled:opacity-60"
+			>
+				<span v-if="syncing">⏳ Menyinkronkan...</span>
+				<span v-else>🔄 Sync Siswa dari BK</span>
+			</button>
+		</div>
 	</div>
 
 	<!-- Image Picker Modal -->
@@ -495,6 +532,8 @@ function selectPickerImage(img) {
 const cfg = ref({});
 const loading = ref(true);
 const saving = ref(false);
+const syncing = ref(false);
+const syncResult = ref(null);
 
 const showResultBool = computed({
 	get: () => cfg.value.show_exam_result !== "false",
@@ -556,6 +595,22 @@ async function save() {
 		});
 	} finally {
 		saving.value = false;
+	}
+}
+
+async function syncFromBk() {
+	syncing.value = true;
+	syncResult.value = null;
+	try {
+		const res = await api.post("/sync/from-bk");
+		syncResult.value = res.data;
+	} catch (err) {
+		syncResult.value = {
+			success: false,
+			message: err.response?.data?.message || "Gagal terhubung ke BK RSMS.",
+		};
+	} finally {
+		syncing.value = false;
 	}
 }
 

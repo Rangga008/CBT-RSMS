@@ -393,6 +393,7 @@ function formatDate(d) {
 
 async function loadPoin() {
 	const params = {};
+	if (filterSearch.value) params.search = filterSearch.value;
 	if (filterTipe.value) params.tipe = filterTipe.value;
 	if (filterKelas.value) params.kelas = filterKelas.value;
 	if (filterDari.value && filterSampai.value) {

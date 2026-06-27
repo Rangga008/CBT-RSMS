@@ -7,6 +7,79 @@
 			</p>
 		</div>
 
+		<!-- Identitas Sekolah -->
+		<div class="card">
+			<h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+				<i class="fas fa-school text-purple-500"></i> Identitas Sekolah
+			</h3>
+			<div v-if="config" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+				<div class="sm:col-span-2">
+					<label class="label">Nama Sekolah</label>
+					<input
+						v-model="config.namaSekolah"
+						type="text"
+						class="input"
+						placeholder="SMK Negeri 1 ..."
+					/>
+				</div>
+				<div>
+					<label class="label">Nama Kepala Sekolah</label>
+					<input
+						v-model="config.namaKepalaSekolah"
+						type="text"
+						class="input"
+						placeholder="Drs. ..."
+					/>
+				</div>
+				<div>
+					<label class="label">NIP Kepala Sekolah</label>
+					<input
+						v-model="config.nipKepalaSekolah"
+						type="text"
+						class="input"
+						placeholder="19..."
+					/>
+				</div>
+				<div class="sm:col-span-2">
+					<label class="label">Alamat Sekolah</label>
+					<input
+						v-model="config.alamatSekolah"
+						type="text"
+						class="input"
+						placeholder="Jl. ..."
+					/>
+				</div>
+				<div>
+					<label class="label">NPSN</label>
+					<input
+						v-model="config.npsn"
+						type="text"
+						class="input"
+						placeholder="12345678"
+					/>
+				</div>
+				<div>
+					<label class="label">Batas Poin Pelanggaran</label>
+					<input
+						v-model.number="config.batasPoinPelanggaran"
+						type="number"
+						class="input"
+						min="0"
+						placeholder="100"
+					/>
+					<p class="text-xs text-slate-400 mt-1">
+						Siswa dengan poin ≥ nilai ini akan mendapat peringatan.
+					</p>
+				</div>
+			</div>
+			<div class="mt-4 flex justify-end">
+				<button @click="saveConfig" :disabled="saveLoading" class="btn-primary">
+					<i v-if="saveLoading" class="fas fa-circle-notch fa-spin"></i>
+					Simpan Identitas
+				</button>
+			</div>
+		</div>
+
 		<!-- Config form -->
 		<div class="card">
 			<h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
@@ -145,6 +218,72 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- Sinkronisasi dari CBT RSMS -->
+	<div class="card">
+		<h3 class="font-bold text-slate-700 mb-1 flex items-center gap-2">
+			<i class="fas fa-sync-alt text-green-500"></i> Sinkronisasi Data dari CBT
+			RSMS
+		</h3>
+		<p class="text-sm text-slate-500 mb-4">
+			Tarik data siswa dan guru/admin dari aplikasi CBT RSMS ke database BK
+			secara otomatis.
+		</p>
+		<div class="flex flex-wrap items-center gap-3">
+			<button @click="syncFromCbt" :disabled="syncing" class="btn-success">
+				<i v-if="syncing" class="fas fa-circle-notch fa-spin"></i>
+				<i v-else class="fas fa-sync-alt"></i>
+				{{ syncing ? "Menyinkronkan..." : "Sinkronkan Sekarang" }}
+			</button>
+			<span
+				v-if="syncStatus"
+				class="text-sm"
+				:class="syncStatus.ok ? 'text-emerald-600' : 'text-red-600'"
+			>
+				<i
+					:class="syncStatus.ok ? 'fas fa-check-circle' : 'fas fa-times-circle'"
+					class="mr-1"
+				></i>
+				{{ syncStatus.msg }}
+			</span>
+		</div>
+		<div
+			v-if="syncResult"
+			class="mt-4 p-4 bg-emerald-50 rounded-xl border border-emerald-200"
+		>
+			<p class="text-sm font-bold text-emerald-700 mb-2">
+				<i class="fas fa-check-circle mr-1"></i>Hasil Sinkronisasi
+			</p>
+			<div class="grid grid-cols-2 gap-3 text-sm">
+				<div class="bg-white rounded-lg p-3 border border-emerald-100">
+					<p class="font-semibold text-slate-700">Siswa</p>
+					<p class="text-emerald-600">+{{ syncResult.siswa.ditambah }} baru</p>
+					<p class="text-blue-600">
+						↑ {{ syncResult.siswa.diperbarui }} diperbarui
+					</p>
+					<p class="text-slate-400 text-xs mt-1">
+						Total dari CBT: {{ syncResult.siswa.total }}
+					</p>
+				</div>
+				<div class="bg-white rounded-lg p-3 border border-emerald-100">
+					<p class="font-semibold text-slate-700">Guru/Admin</p>
+					<p class="text-emerald-600">+{{ syncResult.guru.ditambah }} baru</p>
+					<p class="text-blue-600">
+						↑ {{ syncResult.guru.diperbarui }} diperbarui
+					</p>
+					<p class="text-slate-400 text-xs mt-1">
+						Total dari CBT: {{ syncResult.guru.total }}
+					</p>
+				</div>
+			</div>
+		</div>
+		<div
+			v-if="syncError"
+			class="mt-4 p-4 bg-red-50 rounded-xl border border-red-200 text-sm text-red-700"
+		>
+			<i class="fas fa-exclamation-triangle mr-1"></i> {{ syncError }}
+		</div>
+	</div>
 </template>
 
 <script setup>
@@ -156,6 +295,10 @@ const hariLibur = ref([]);
 const saveLoading = ref(false);
 const showHariLiburModal = ref(false);
 const hlForm = ref({ tanggal: "", keterangan: "" });
+const syncing = ref(false);
+const syncStatus = ref(null);
+const syncResult = ref(null);
+const syncError = ref("");
 
 const hariList = [
 	{ value: "Senin", label: "Sen" },
@@ -213,6 +356,26 @@ async function deleteHariLibur(id) {
 	if (!confirm("Hapus hari libur ini?")) return;
 	await api.delete(`/config/hari-libur/${id}`);
 	loadHariLibur();
+}
+
+async function syncFromCbt() {
+	syncing.value = true;
+	syncStatus.value = null;
+	syncResult.value = null;
+	syncError.value = "";
+	try {
+		const { data } = await api.post("/sync/from-cbt");
+		syncResult.value = data.data;
+		syncStatus.value = { ok: true, msg: data.message };
+	} catch (e) {
+		const msg =
+			e.response?.data?.message ||
+			"Gagal terhubung ke CBT RSMS. Pastikan server CBT berjalan.";
+		syncError.value = msg;
+		syncStatus.value = { ok: false, msg };
+	} finally {
+		syncing.value = false;
+	}
 }
 
 onMounted(() => {

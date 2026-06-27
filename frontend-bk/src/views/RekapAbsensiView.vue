@@ -37,9 +37,28 @@
 				<i v-if="loading" class="fas fa-circle-notch fa-spin"></i>
 				<i v-else class="fas fa-search"></i> Tampilkan
 			</button>
-			<button v-if="rekap.length" @click="exportExcel" class="btn-secondary">
-				<i class="fas fa-file-excel"></i> Export Excel
-			</button>
+			<template v-if="rekap.length">
+				<div>
+					<label class="label">Mode Export</label>
+					<select v-model="modeExport" class="input">
+						<option value="ringkasan_siswa">Rekap per Siswa</option>
+						<option value="per_kelas_multisheet">
+							Per Kelas (multi-sheet)
+						</option>
+						<option value="per_tanggal">Per Tanggal (semua kelas)</option>
+						<option value="per_tanggal_kelas">Per Tanggal + Kelas</option>
+						<option value="per_bulan">Per Bulan</option>
+					</select>
+				</div>
+				<button
+					@click="exportExcel"
+					:disabled="exportLoading"
+					class="btn-secondary"
+				>
+					<i v-if="exportLoading" class="fas fa-circle-notch fa-spin"></i>
+					<i v-else class="fas fa-file-excel"></i> Export Excel
+				</button>
+			</template>
 		</div>
 
 		<!-- Summary stats -->
@@ -153,6 +172,8 @@ const filterNisn = ref("");
 const kelasList = ref([]);
 const rekap = ref([]);
 const loading = ref(false);
+const modeExport = ref("ringkasan_siswa");
+const exportLoading = ref(false);
 
 const totals = computed(() => ({
 	hadir: rekap.value.reduce((s, r) => s + r.hadir, 0),
@@ -184,23 +205,122 @@ async function loadRekap() {
 }
 
 async function exportExcel() {
-	const { utils, writeFile } = await import("xlsx");
-	const ws = utils.json_to_sheet(
-		rekap.value.map((r) => ({
-			NISN: r.nisn,
-			Nama: r.nama,
-			Kelas: r.kelas,
-			Hadir: r.hadir,
-			Sakit: r.sakit,
-			Izin: r.izin,
-			Alpa: r.alpa,
-			"Total Hari": r.total,
-			"% Kehadiran": r.persen + "%",
-		})),
-	);
-	const wb = utils.book_new();
-	utils.book_append_sheet(wb, ws, "Rekap Absensi");
-	writeFile(wb, `Rekap_Absensi_${dari.value}_${sampai.value}.xlsx`);
+	exportLoading.value = true;
+	try {
+		const { utils, writeFile } = await import("xlsx");
+		const wb = utils.book_new();
+		const filename = `Rekap_Absensi_${dari.value}_${sampai.value}.xlsx`;
+
+		if (modeExport.value === "ringkasan_siswa") {
+			const ws = utils.json_to_sheet(
+				rekap.value.map((r) => ({
+					NISN: r.nisn,
+					Nama: r.nama,
+					Kelas: r.kelas,
+					Hadir: r.hadir,
+					Sakit: r.sakit,
+					Izin: r.izin,
+					Alpa: r.alpa,
+					"Total Hari": r.total,
+					"% Kehadiran": r.persen + "%",
+				})),
+			);
+			utils.book_append_sheet(wb, ws, "Rekap Absensi");
+		} else if (modeExport.value === "per_kelas_multisheet") {
+			const kelasBuckets = {};
+			rekap.value.forEach((r) => {
+				if (!kelasBuckets[r.kelas]) kelasBuckets[r.kelas] = [];
+				kelasBuckets[r.kelas].push(r);
+			});
+			const sortedKelas = Object.keys(kelasBuckets).sort();
+			if (!sortedKelas.length) sortedKelas.push("Semua");
+			sortedKelas.forEach((kelas) => {
+				const rows = kelasBuckets[kelas] || [];
+				const ws = utils.json_to_sheet(
+					rows.map((r) => ({
+						NISN: r.nisn,
+						Nama: r.nama,
+						Hadir: r.hadir,
+						Sakit: r.sakit,
+						Izin: r.izin,
+						Alpa: r.alpa,
+						"Total Hari": r.total,
+						"% Kehadiran": r.persen + "%",
+					})),
+				);
+				utils.book_append_sheet(wb, ws, kelas.substring(0, 31));
+			});
+		} else if (
+			modeExport.value === "per_tanggal" ||
+			modeExport.value === "per_tanggal_kelas"
+		) {
+			const params = { dari: dari.value, sampai: sampai.value };
+			if (filterKelas.value) params.kelas = filterKelas.value;
+			const { data } = await api.get("/absensi/rekap-harian", { params });
+			const rows = data.data || [];
+
+			if (modeExport.value === "per_tanggal") {
+				const byDate = {};
+				rows.forEach((r) => {
+					if (!byDate[r.tanggal])
+						byDate[r.tanggal] = {
+							Tanggal: r.tanggal,
+							Hadir: 0,
+							Sakit: 0,
+							Izin: 0,
+							Alpa: 0,
+						};
+					byDate[r.tanggal].Hadir += r.hadir;
+					byDate[r.tanggal].Sakit += r.sakit;
+					byDate[r.tanggal].Izin += r.izin;
+					byDate[r.tanggal].Alpa += r.alpa;
+				});
+				const ws = utils.json_to_sheet(Object.values(byDate));
+				utils.book_append_sheet(wb, ws, "Per Tanggal");
+			} else {
+				const ws = utils.json_to_sheet(
+					rows.map((r) => ({
+						Tanggal: r.tanggal,
+						Kelas: r.kelas,
+						Hadir: r.hadir,
+						Sakit: r.sakit,
+						Izin: r.izin,
+						Alpa: r.alpa,
+					})),
+				);
+				utils.book_append_sheet(wb, ws, "Per Tanggal & Kelas");
+			}
+		} else if (modeExport.value === "per_bulan") {
+			const params = { dari: dari.value, sampai: sampai.value };
+			if (filterKelas.value) params.kelas = filterKelas.value;
+			const { data } = await api.get("/absensi/rekap-harian", { params });
+			const rows = data.data || [];
+			const byBulan = {};
+			rows.forEach((r) => {
+				const bulan = r.tanggal.substring(0, 7);
+				if (!byBulan[bulan])
+					byBulan[bulan] = {
+						Bulan: bulan,
+						Hadir: 0,
+						Sakit: 0,
+						Izin: 0,
+						Alpa: 0,
+					};
+				byBulan[bulan].Hadir += r.hadir;
+				byBulan[bulan].Sakit += r.sakit;
+				byBulan[bulan].Izin += r.izin;
+				byBulan[bulan].Alpa += r.alpa;
+			});
+			const ws = utils.json_to_sheet(Object.values(byBulan));
+			utils.book_append_sheet(wb, ws, "Per Bulan");
+		}
+
+		writeFile(wb, filename);
+	} catch (e) {
+		alert("Gagal export: " + (e.message || e));
+	} finally {
+		exportLoading.value = false;
+	}
 }
 
 onMounted(() => {

@@ -73,13 +73,13 @@
 				</div>
 				<div class="modal-body space-y-4">
 					<div>
-						<label class="label">Nama Lengkap</label
-						><input v-model="form.namaLengkap" type="text" class="input" />
+						<label class="label">Nama Lengkap *</label
+						><input v-model="form.nama" type="text" class="input" />
 					</div>
 					<div>
-						<label class="label">Username *</label
+						<label class="label">User ID (login) *</label
 						><input
-							v-model="form.username"
+							v-model="form.userId"
 							type="text"
 							class="input"
 							:disabled="!!editing"
@@ -108,8 +108,13 @@
 						</select>
 					</div>
 					<div>
-						<label class="label">NIP (Guru/BK)</label
-						><input v-model="form.nip" type="text" class="input" />
+						<label class="label">Kelas (dipisah koma, misal: X-A,X-B)</label
+						><input
+							v-model="form.kelas"
+							type="text"
+							class="input"
+							placeholder="Opsional"
+						/>
 					</div>
 				</div>
 				<div class="modal-footer">
@@ -154,11 +159,11 @@ async function load() {
 function openAdd() {
 	editing.value = null;
 	form.value = {
-		username: "",
+		userId: "",
 		password: "",
-		namaLengkap: "",
+		nama: "",
 		role: "guru",
-		nip: "",
+		kelas: "",
 	};
 	showModal.value = true;
 }
@@ -174,7 +179,7 @@ async function saveUser() {
 	try {
 		const payload = { ...form.value };
 		if (!payload.password) delete payload.password;
-		if (!payload.nip) payload.nip = null;
+		if (!payload.kelas) payload.kelas = null;
 		if (editing.value) await api.put(`/users/${editing.value.id}`, payload);
 		else await api.post("/users", payload);
 		showModal.value = false;

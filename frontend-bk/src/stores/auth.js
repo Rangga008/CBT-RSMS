@@ -12,9 +12,22 @@ export const useAuthStore = defineStore("auth", () => {
 	const isBK = computed(
 		() => user.value?.role === "bk" || user.value?.role === "admin",
 	);
+	// siswa = hanya bisa absen sendiri
+	const isSiswa = computed(() => user.value?.role === "siswa");
+	// staff = semua selain siswa (admin, bk, guru)
+	const isStaff = computed(() => !!user.value && user.value?.role !== "siswa");
 
 	async function login(userId, password) {
 		const { data } = await api.post("/auth/login", { userId, password });
+		token.value = data.token;
+		user.value = data.user;
+		localStorage.setItem("bk_token", data.token);
+		localStorage.setItem("bk_user", JSON.stringify(data.user));
+		return data;
+	}
+
+	async function loginNisn(nisn) {
+		const { data } = await api.post("/auth/login-nisn", { nisn });
 		token.value = data.token;
 		user.value = data.user;
 		localStorage.setItem("bk_token", data.token);
@@ -35,5 +48,16 @@ export const useAuthStore = defineStore("auth", () => {
 		router.push("/login");
 	}
 
-	return { user, token, isLoggedIn, isAdmin, isBK, login, logout };
+	return {
+		user,
+		token,
+		isLoggedIn,
+		isAdmin,
+		isBK,
+		isSiswa,
+		isStaff,
+		login,
+		loginNisn,
+		logout,
+	};
 });

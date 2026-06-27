@@ -94,6 +94,8 @@ const routeFiles = [
 	"./routes/bk/kasus.js",
 	"./routes/bk/kunjungan.js",
 	"./routes/bk/dashboard.js",
+	"./routes/sync.js",
+	"./routes/internal.js",
 ];
 
 for (const routeFile of routeFiles) {

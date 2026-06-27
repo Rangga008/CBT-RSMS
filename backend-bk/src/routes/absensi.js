@@ -63,6 +63,19 @@ export default async function absensiRoutes(fastify) {
 					.code(400)
 					.send({ success: false, message: "Input tidak valid." });
 
+			// Siswa hanya bisa absen dirinya sendiri
+			if (
+				request.user.role === "siswa" &&
+				parsed.data.nisn !== request.user.userId
+			) {
+				return reply
+					.code(403)
+					.send({
+						success: false,
+						message: "Siswa hanya bisa absen diri sendiri.",
+					});
+			}
+
 			const result = await processAbsensi(parsed.data.nisn, request.user);
 			if (result.success)
 				broadcastAbsensi({ type: "absensi_update", ...result.data });
@@ -266,6 +279,66 @@ export default async function absensiRoutes(fastify) {
 			});
 
 			return { success: true, data: Object.values(siswaMap) };
+		},
+	);
+
+	// ── GET rekap harian (per-date breakdown, for export modes) ──────────────
+	fastify.get(
+		"/absensi/rekap-harian",
+		{ preHandler: fastify.verifyJWT },
+		async (request) => {
+			const { dari, sampai, kelas } = request.query;
+			const where = {};
+			if (dari && sampai)
+				where.tanggal = { gte: new Date(dari), lte: new Date(sampai) };
+			if (kelas) where.kelasSnapshot = { in: kelas.split(",") };
+
+			const rows = await prisma.absensi.groupBy({
+				by: ["tanggal", "kelasSnapshot", "status"],
+				where,
+				_count: { status: true },
+				orderBy: [{ tanggal: "asc" }, { kelasSnapshot: "asc" }],
+			});
+
+			// Group per tanggal+kelas
+			const map = {};
+			rows.forEach((r) => {
+				const key = `${r.tanggal.toISOString().split("T")[0]}__${r.kelasSnapshot}`;
+				if (!map[key]) {
+					map[key] = {
+						tanggal: r.tanggal.toISOString().split("T")[0],
+						kelas: r.kelasSnapshot,
+						hadir: 0,
+						sakit: 0,
+						izin: 0,
+						alpa: 0,
+					};
+				}
+				map[key][r.status.toLowerCase()] = r._count.status;
+			});
+
+			return { success: true, data: Object.values(map) };
+		},
+	);
+
+	// ── GET riwayat per siswa (untuk siswa login sendiri) ────────────────────
+	fastify.get(
+		"/absensi/riwayat-siswa",
+		{ preHandler: fastify.verifyJWT },
+		async (request) => {
+			const { nisn, dari, sampai } = request.query;
+			// Siswa hanya bisa lihat datanya sendiri
+			const targetNisn =
+				request.user.role === "siswa" ? request.user.userId : nisn;
+			const where = { siswaNisn: targetNisn };
+			if (dari && sampai)
+				where.tanggal = { gte: new Date(dari), lte: new Date(sampai) };
+			const list = await prisma.absensi.findMany({
+				where,
+				orderBy: { tanggal: "desc" },
+				take: 60,
+			});
+			return { success: true, data: list };
 		},
 	);
 
