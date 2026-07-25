@@ -389,6 +389,8 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import api from "@/services/api.js";
+import { useToast } from "@/composables/useToast.js";
+const toast = useToast();
 
 const kunjunganList = ref([]);
 const kelasList = ref([]);
@@ -511,8 +513,10 @@ function openAdd() {
 }
 
 async function saveKunjungan() {
-	if (!form.value.siswaNisn || !form.value.tujuan)
-		return alert("Lengkapi data!");
+	if (!form.value.siswaNisn || !form.value.tujuan) {
+		toast.warn("Lengkapi data!");
+		return;
+	}
 	saveLoading.value = true;
 	try {
 		await api.post("/bk/kunjungan", {
@@ -526,7 +530,7 @@ async function saveKunjungan() {
 		showAddModal.value = false;
 		loadKunjungan();
 	} catch (e) {
-		alert(e.response?.data?.message || "Gagal");
+		toast.error(e.response?.data?.message || "Gagal");
 	} finally {
 		saveLoading.value = false;
 	}
@@ -564,7 +568,7 @@ async function uploadDokumen(event, index) {
 		});
 		selectedKunjungan.value.dokumenList = updatedDokumen;
 	} catch (e) {
-		alert("Gagal upload: " + (e.response?.data?.message || e.message));
+		toast.error("Gagal upload: " + (e.response?.data?.message || e.message));
 	}
 }
 

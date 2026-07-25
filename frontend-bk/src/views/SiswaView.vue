@@ -9,9 +9,17 @@
 					Kelola database siswa untuk sistem BK & Absensi
 				</p>
 			</div>
-			<div class="flex gap-2">
+			<div class="flex gap-2 flex-wrap">
+				<a
+					:href="templateUrl"
+					download="template-import-siswa.csv"
+					class="btn-secondary"
+					title="Download template CSV"
+				>
+					<i class="fas fa-download"></i> Template
+				</a>
 				<button @click="triggerImport" class="btn-secondary">
-					<i class="fas fa-file-excel"></i> Import Excel
+					<i class="fas fa-file-excel"></i> Import Excel/CSV
 				</button>
 				<input
 					ref="importFileInput"
@@ -20,6 +28,16 @@
 					class="hidden"
 					@change="handleImportFile"
 				/>
+				<button
+					@click="printQrCards"
+					:disabled="printingQr"
+					class="btn-secondary"
+					title="Cetak kartu QR per kelas"
+				>
+					<i v-if="printingQr" class="fas fa-circle-notch fa-spin"></i>
+					<i v-else class="fas fa-qrcode"></i>
+					Kartu QR
+				</button>
 				<button @click="openAdd" class="btn-primary">
 					<i class="fas fa-user-plus"></i> Tambah Siswa
 				</button>
@@ -290,11 +308,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import api from "@/services/api.js";
 import { useAuthStore } from "@/stores/auth.js";
+import { useToast } from "@/composables/useToast.js";
+import { useConfirm } from "@/composables/useConfirm.js";
+const toast = useToast();
+const { confirm } = useConfirm();
 
 const authStore = useAuthStore();
+
+const templateUrl = computed(
+	() => `${import.meta.env.VITE_API_URL || ""}/api/v1/siswa/import-template`,
+);
 const siswaList = ref([]);
 const kelasList = ref([]);
 const search = ref("");
@@ -398,7 +424,7 @@ async function handleImportFile(e) {
 			.filter((r) => r.nisn && r.nama && r.kelas);
 		showImportModal.value = true;
 	} catch (err) {
-		alert("Gagal membaca file: " + err.message);
+		toast.error("Gagal membaca file: " + err.message);
 	}
 }
 
@@ -411,7 +437,7 @@ async function confirmImport() {
 		importResult.value = data.data;
 		await load();
 	} catch (e) {
-		alert(e.response?.data?.message || "Gagal import");
+		toast.error(e.response?.data?.message || "Gagal import");
 	} finally {
 		importLoading.value = false;
 	}
@@ -427,7 +453,7 @@ async function saveSiswa() {
 		showModal.value = false;
 		load();
 	} catch (e) {
-		alert(e.response?.data?.message || "Gagal");
+		toast.error(e.response?.data?.message || "Gagal");
 	} finally {
 		saveLoading.value = false;
 	}
@@ -435,13 +461,86 @@ async function saveSiswa() {
 
 async function deleteSiswa(nisn) {
 	if (
-		!confirm(
+		!(await confirm(
 			"Hapus siswa ini? Semua data absensi dan BK terkait akan terhapus!",
-		)
+		))
 	)
 		return;
 	await api.delete(`/siswa/${nisn}`);
 	load();
+}
+
+// ── QR Card PDF (per kelas or all) ───────────────────────────────────────────
+const printingQr = ref(false);
+
+async function printQrCards() {
+	const currentKelas = filterKelas.value;
+	printingQr.value = true;
+	try {
+		// Fetch siswa (apply current kelas filter)
+		const params = { active: "all" };
+		if (currentKelas) params.kelas = currentKelas;
+		const { data } = await api.get("/siswa", { params });
+		const siswaBatch = data.data || [];
+		if (!siswaBatch.length) {
+			toast.warn("Tidak ada siswa untuk dicetak.");
+			return;
+		}
+
+		// Generate QR data URLs
+		const { default: QRCode } = await import("qrcode");
+		const cards = await Promise.all(
+			siswaBatch.map(async (s) => ({
+				...s,
+				qrDataUrl: await QRCode.toDataURL(s.nisn, {
+					width: 160,
+					margin: 1,
+					errorCorrectionLevel: "H",
+				}),
+			})),
+		);
+
+		// Build print window
+		const schoolName = document.title || "SIAP BK RSMS";
+		const html = `<!DOCTYPE html>
+<html><head><title>Kartu QR Absensi</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; padding: 10px; background: #fff; }
+  .grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .card { width: 85.6mm; min-height: 54mm; border: 1px solid #ccc; border-radius: 6px;
+          padding: 8px; display: flex; gap: 8px; align-items: center; page-break-inside: avoid; }
+  .qr img { width: 80px; height: 80px; }
+  .info { flex: 1; }
+  .school { font-size: 7px; color: #666; margin-bottom: 2px; }
+  .nama { font-size: 11px; font-weight: bold; line-height: 1.2; }
+  .kelas { font-size: 9px; color: #333; margin-top: 2px; }
+  .nisn { font-size: 8px; color: #999; margin-top: 4px; }
+  @media print { @page { margin: 8mm; } }
+</style></head><body>
+<div class="grid">
+${cards
+	.map(
+		(s) => `<div class="card">
+  <div class="qr"><img src="${s.qrDataUrl}" alt="QR" /></div>
+  <div class="info">
+    <p class="school">${schoolName}</p>
+    <p class="nama">${s.nama}</p>
+    <p class="kelas">${s.kelas}</p>
+    <p class="nisn">NISN: ${s.nisn}</p>
+  </div>
+</div>`,
+	)
+	.join("")}
+</div>
+<script>window.onload=()=>{ window.print(); window.onafterprint=()=>window.close(); }<\/script>
+</body></html>`;
+
+		const win = window.open("", "_blank", "width=900,height=700");
+		win.document.write(html);
+		win.document.close();
+	} finally {
+		printingQr.value = false;
+	}
 }
 
 onMounted(async () => {

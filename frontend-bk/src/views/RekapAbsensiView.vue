@@ -164,6 +164,8 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import api from "@/services/api.js";
+import { useToast } from "@/composables/useToast.js";
+const toast = useToast();
 
 const dari = ref(new Date(new Date().setDate(1)).toISOString().split("T")[0]);
 const sampai = ref(new Date().toISOString().split("T")[0]);
@@ -317,7 +319,7 @@ async function exportExcel() {
 
 		writeFile(wb, filename);
 	} catch (e) {
-		alert("Gagal export: " + (e.message || e));
+		toast.error("Gagal export: " + (e.message || e));
 	} finally {
 		exportLoading.value = false;
 	}

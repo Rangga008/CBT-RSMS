@@ -341,6 +341,10 @@
 <script setup>
 import { ref, onMounted, watch, computed } from "vue";
 import api from "@/services/api.js";
+import { useToast } from "@/composables/useToast.js";
+import { useConfirm } from "@/composables/useConfirm.js";
+const toast = useToast();
+const { confirm } = useConfirm();
 
 const poinList = ref([]);
 const rankingList = ref([]);
@@ -452,8 +456,10 @@ function openAdd() {
 }
 
 async function savePoin() {
-	if (!form.value.siswaNisn || !form.value.poin)
-		return alert("Lengkapi data poin!");
+	if (!form.value.siswaNisn || !form.value.poin) {
+		toast.warn("Lengkapi data poin!");
+		return;
+	}
 	saveLoading.value = true;
 	try {
 		const payload = {
@@ -473,16 +479,20 @@ async function savePoin() {
 		showModal.value = false;
 		loadPoin();
 	} catch (e) {
-		alert(e.response?.data?.message || "Gagal menyimpan");
+		toast.error(e.response?.data?.message || "Gagal menyimpan");
 	} finally {
 		saveLoading.value = false;
 	}
 }
 
 async function deletePoin(id) {
-	if (!confirm("Hapus data poin ini?")) return;
-	await api.delete(`/bk/poin/${id}`);
-	loadPoin();
+	if (!(await confirm("Hapus data poin ini?"))) return;
+	try {
+		await api.delete(`/bk/poin/${id}`);
+		loadPoin();
+	} catch (e) {
+		toast.error(e.response?.data?.message || "Gagal menghapus");
+	}
 }
 
 onMounted(async () => {

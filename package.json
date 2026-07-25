@@ -4,25 +4,33 @@
 	"description": "Sistem Ujian Online CBT RSMS - Computer Based Test",
 	"private": true,
 	"scripts": {
-		"dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+		"dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:backend-bk\" \"npm run dev:frontend-bk\"",
 		"dev:backend": "npm run dev --workspace=backend",
 		"dev:frontend": "npm run dev --workspace=frontend",
-		"build": "npm run build --workspace=frontend && npm run build --workspace=backend",
+		"dev:backend-bk": "npm run dev --workspace=backend-bk",
+		"dev:frontend-bk": "npm run dev --workspace=frontend-bk",
+		"build": "npm run build --workspace=frontend && npm run build --workspace=frontend-bk",
 		"start": "npm run start --workspace=backend",
-		"install:all": "npm install && npm install --workspace=backend && npm install --workspace=frontend",
+		"start:bk": "npm run start --workspace=backend-bk",
+		"install:all": "npm install && npm install --workspace=backend && npm install --workspace=frontend && npm install --workspace=backend-bk && npm install --workspace=frontend-bk",
 		"db:migrate": "npm run db:migrate --workspace=backend",
+		"db:migrate:bk": "npm run db:migrate --workspace=backend-bk",
 		"db:seed": "npm run db:seed --workspace=backend",
+		"db:seed:bk": "npm run db:seed --workspace=backend-bk",
 		"db:studio": "npm run db:studio --workspace=backend",
+		"db:studio:bk": "npm run db:studio --workspace=backend-bk",
 		"start:pm2": "npm run build && pm2 start ecosystem.config.cjs",
-		"stop:pm2": "pm2 stop cbt-rsms-backend",
-		"logs:pm2": "pm2 logs cbt-rsms-backend",
+		"stop:pm2": "pm2 stop all",
+		"logs:pm2": "pm2 logs",
 		"launcher:dev": "npm run dev --prefix launcher",
 		"launcher:build:win": "npm run build:win --prefix launcher",
 		"launcher:build:linux": "npm run build:linux --prefix launcher"
 	},
 	"workspaces": [
 		"backend",
-		"frontend"
+		"frontend",
+		"backend-bk",
+		"frontend-bk"
 	],
 	"devDependencies": {
 		"concurrently": "^8.2.2"

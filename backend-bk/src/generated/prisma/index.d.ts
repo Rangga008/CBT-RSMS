@@ -78,6 +78,16 @@ export type LaporanKasus = $Result.DefaultSelection<Prisma.$LaporanKasusPayload>
  * 
  */
 export type KunjunganRumah = $Result.DefaultSelection<Prisma.$KunjunganRumahPayload>
+/**
+ * Model Kelas
+ * 
+ */
+export type Kelas = $Result.DefaultSelection<Prisma.$KelasPayload>
+/**
+ * Model Mapel
+ * 
+ */
+export type Mapel = $Result.DefaultSelection<Prisma.$MapelPayload>
 
 /**
  * Enums
@@ -434,6 +444,26 @@ export class PrismaClient<
     * ```
     */
   get kunjunganRumah(): Prisma.KunjunganRumahDelegate<ExtArgs>;
+
+  /**
+   * `prisma.kelas`: Exposes CRUD operations for the **Kelas** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Kelas
+    * const kelas = await prisma.kelas.findMany()
+    * ```
+    */
+  get kelas(): Prisma.KelasDelegate<ExtArgs>;
+
+  /**
+   * `prisma.mapel`: Exposes CRUD operations for the **Mapel** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Mapels
+    * const mapels = await prisma.mapel.findMany()
+    * ```
+    */
+  get mapel(): Prisma.MapelDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -887,7 +917,9 @@ export namespace Prisma {
     PoinSiswa: 'PoinSiswa',
     KasusSiswa: 'KasusSiswa',
     LaporanKasus: 'LaporanKasus',
-    KunjunganRumah: 'KunjunganRumah'
+    KunjunganRumah: 'KunjunganRumah',
+    Kelas: 'Kelas',
+    Mapel: 'Mapel'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -903,7 +935,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "user" | "session" | "siswa" | "absensi" | "hariLibur" | "appConfig" | "jenisPelanggaran" | "jenisPrestasi" | "jenisKasus" | "poinSiswa" | "kasusSiswa" | "laporanKasus" | "kunjunganRumah"
+      modelProps: "user" | "session" | "siswa" | "absensi" | "hariLibur" | "appConfig" | "jenisPelanggaran" | "jenisPrestasi" | "jenisKasus" | "poinSiswa" | "kasusSiswa" | "laporanKasus" | "kunjunganRumah" | "kelas" | "mapel"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1814,6 +1846,146 @@ export namespace Prisma {
           count: {
             args: Prisma.KunjunganRumahCountArgs<ExtArgs>
             result: $Utils.Optional<KunjunganRumahCountAggregateOutputType> | number
+          }
+        }
+      }
+      Kelas: {
+        payload: Prisma.$KelasPayload<ExtArgs>
+        fields: Prisma.KelasFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.KelasFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KelasPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.KelasFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KelasPayload>
+          }
+          findFirst: {
+            args: Prisma.KelasFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KelasPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.KelasFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KelasPayload>
+          }
+          findMany: {
+            args: Prisma.KelasFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KelasPayload>[]
+          }
+          create: {
+            args: Prisma.KelasCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KelasPayload>
+          }
+          createMany: {
+            args: Prisma.KelasCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.KelasCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KelasPayload>[]
+          }
+          delete: {
+            args: Prisma.KelasDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KelasPayload>
+          }
+          update: {
+            args: Prisma.KelasUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KelasPayload>
+          }
+          deleteMany: {
+            args: Prisma.KelasDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.KelasUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.KelasUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KelasPayload>
+          }
+          aggregate: {
+            args: Prisma.KelasAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateKelas>
+          }
+          groupBy: {
+            args: Prisma.KelasGroupByArgs<ExtArgs>
+            result: $Utils.Optional<KelasGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.KelasCountArgs<ExtArgs>
+            result: $Utils.Optional<KelasCountAggregateOutputType> | number
+          }
+        }
+      }
+      Mapel: {
+        payload: Prisma.$MapelPayload<ExtArgs>
+        fields: Prisma.MapelFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.MapelFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MapelPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.MapelFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MapelPayload>
+          }
+          findFirst: {
+            args: Prisma.MapelFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MapelPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.MapelFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MapelPayload>
+          }
+          findMany: {
+            args: Prisma.MapelFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MapelPayload>[]
+          }
+          create: {
+            args: Prisma.MapelCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MapelPayload>
+          }
+          createMany: {
+            args: Prisma.MapelCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.MapelCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MapelPayload>[]
+          }
+          delete: {
+            args: Prisma.MapelDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MapelPayload>
+          }
+          update: {
+            args: Prisma.MapelUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MapelPayload>
+          }
+          deleteMany: {
+            args: Prisma.MapelDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.MapelUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.MapelUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MapelPayload>
+          }
+          aggregate: {
+            args: Prisma.MapelAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateMapel>
+          }
+          groupBy: {
+            args: Prisma.MapelGroupByArgs<ExtArgs>
+            result: $Utils.Optional<MapelGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.MapelCountArgs<ExtArgs>
+            result: $Utils.Optional<MapelCountAggregateOutputType> | number
           }
         }
       }
@@ -15302,6 +15474,1690 @@ export namespace Prisma {
 
 
   /**
+   * Model Kelas
+   */
+
+  export type AggregateKelas = {
+    _count: KelasCountAggregateOutputType | null
+    _min: KelasMinAggregateOutputType | null
+    _max: KelasMaxAggregateOutputType | null
+  }
+
+  export type KelasMinAggregateOutputType = {
+    id: string | null
+    nama: string | null
+  }
+
+  export type KelasMaxAggregateOutputType = {
+    id: string | null
+    nama: string | null
+  }
+
+  export type KelasCountAggregateOutputType = {
+    id: number
+    nama: number
+    _all: number
+  }
+
+
+  export type KelasMinAggregateInputType = {
+    id?: true
+    nama?: true
+  }
+
+  export type KelasMaxAggregateInputType = {
+    id?: true
+    nama?: true
+  }
+
+  export type KelasCountAggregateInputType = {
+    id?: true
+    nama?: true
+    _all?: true
+  }
+
+  export type KelasAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Kelas to aggregate.
+     */
+    where?: KelasWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Kelas to fetch.
+     */
+    orderBy?: KelasOrderByWithRelationInput | KelasOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: KelasWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Kelas from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Kelas.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Kelas
+    **/
+    _count?: true | KelasCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: KelasMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: KelasMaxAggregateInputType
+  }
+
+  export type GetKelasAggregateType<T extends KelasAggregateArgs> = {
+        [P in keyof T & keyof AggregateKelas]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateKelas[P]>
+      : GetScalarType<T[P], AggregateKelas[P]>
+  }
+
+
+
+
+  export type KelasGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: KelasWhereInput
+    orderBy?: KelasOrderByWithAggregationInput | KelasOrderByWithAggregationInput[]
+    by: KelasScalarFieldEnum[] | KelasScalarFieldEnum
+    having?: KelasScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: KelasCountAggregateInputType | true
+    _min?: KelasMinAggregateInputType
+    _max?: KelasMaxAggregateInputType
+  }
+
+  export type KelasGroupByOutputType = {
+    id: string
+    nama: string
+    _count: KelasCountAggregateOutputType | null
+    _min: KelasMinAggregateOutputType | null
+    _max: KelasMaxAggregateOutputType | null
+  }
+
+  type GetKelasGroupByPayload<T extends KelasGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<KelasGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof KelasGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], KelasGroupByOutputType[P]>
+            : GetScalarType<T[P], KelasGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type KelasSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    nama?: boolean
+  }, ExtArgs["result"]["kelas"]>
+
+  export type KelasSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    nama?: boolean
+  }, ExtArgs["result"]["kelas"]>
+
+  export type KelasSelectScalar = {
+    id?: boolean
+    nama?: boolean
+  }
+
+
+  export type $KelasPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Kelas"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      nama: string
+    }, ExtArgs["result"]["kelas"]>
+    composites: {}
+  }
+
+  type KelasGetPayload<S extends boolean | null | undefined | KelasDefaultArgs> = $Result.GetResult<Prisma.$KelasPayload, S>
+
+  type KelasCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<KelasFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: KelasCountAggregateInputType | true
+    }
+
+  export interface KelasDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Kelas'], meta: { name: 'Kelas' } }
+    /**
+     * Find zero or one Kelas that matches the filter.
+     * @param {KelasFindUniqueArgs} args - Arguments to find a Kelas
+     * @example
+     * // Get one Kelas
+     * const kelas = await prisma.kelas.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends KelasFindUniqueArgs>(args: SelectSubset<T, KelasFindUniqueArgs<ExtArgs>>): Prisma__KelasClient<$Result.GetResult<Prisma.$KelasPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one Kelas that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {KelasFindUniqueOrThrowArgs} args - Arguments to find a Kelas
+     * @example
+     * // Get one Kelas
+     * const kelas = await prisma.kelas.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends KelasFindUniqueOrThrowArgs>(args: SelectSubset<T, KelasFindUniqueOrThrowArgs<ExtArgs>>): Prisma__KelasClient<$Result.GetResult<Prisma.$KelasPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first Kelas that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KelasFindFirstArgs} args - Arguments to find a Kelas
+     * @example
+     * // Get one Kelas
+     * const kelas = await prisma.kelas.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends KelasFindFirstArgs>(args?: SelectSubset<T, KelasFindFirstArgs<ExtArgs>>): Prisma__KelasClient<$Result.GetResult<Prisma.$KelasPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first Kelas that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KelasFindFirstOrThrowArgs} args - Arguments to find a Kelas
+     * @example
+     * // Get one Kelas
+     * const kelas = await prisma.kelas.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends KelasFindFirstOrThrowArgs>(args?: SelectSubset<T, KelasFindFirstOrThrowArgs<ExtArgs>>): Prisma__KelasClient<$Result.GetResult<Prisma.$KelasPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more Kelas that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KelasFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Kelas
+     * const kelas = await prisma.kelas.findMany()
+     * 
+     * // Get first 10 Kelas
+     * const kelas = await prisma.kelas.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const kelasWithIdOnly = await prisma.kelas.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends KelasFindManyArgs>(args?: SelectSubset<T, KelasFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$KelasPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a Kelas.
+     * @param {KelasCreateArgs} args - Arguments to create a Kelas.
+     * @example
+     * // Create one Kelas
+     * const Kelas = await prisma.kelas.create({
+     *   data: {
+     *     // ... data to create a Kelas
+     *   }
+     * })
+     * 
+     */
+    create<T extends KelasCreateArgs>(args: SelectSubset<T, KelasCreateArgs<ExtArgs>>): Prisma__KelasClient<$Result.GetResult<Prisma.$KelasPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many Kelas.
+     * @param {KelasCreateManyArgs} args - Arguments to create many Kelas.
+     * @example
+     * // Create many Kelas
+     * const kelas = await prisma.kelas.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends KelasCreateManyArgs>(args?: SelectSubset<T, KelasCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Kelas and returns the data saved in the database.
+     * @param {KelasCreateManyAndReturnArgs} args - Arguments to create many Kelas.
+     * @example
+     * // Create many Kelas
+     * const kelas = await prisma.kelas.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Kelas and only return the `id`
+     * const kelasWithIdOnly = await prisma.kelas.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends KelasCreateManyAndReturnArgs>(args?: SelectSubset<T, KelasCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$KelasPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a Kelas.
+     * @param {KelasDeleteArgs} args - Arguments to delete one Kelas.
+     * @example
+     * // Delete one Kelas
+     * const Kelas = await prisma.kelas.delete({
+     *   where: {
+     *     // ... filter to delete one Kelas
+     *   }
+     * })
+     * 
+     */
+    delete<T extends KelasDeleteArgs>(args: SelectSubset<T, KelasDeleteArgs<ExtArgs>>): Prisma__KelasClient<$Result.GetResult<Prisma.$KelasPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one Kelas.
+     * @param {KelasUpdateArgs} args - Arguments to update one Kelas.
+     * @example
+     * // Update one Kelas
+     * const kelas = await prisma.kelas.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends KelasUpdateArgs>(args: SelectSubset<T, KelasUpdateArgs<ExtArgs>>): Prisma__KelasClient<$Result.GetResult<Prisma.$KelasPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more Kelas.
+     * @param {KelasDeleteManyArgs} args - Arguments to filter Kelas to delete.
+     * @example
+     * // Delete a few Kelas
+     * const { count } = await prisma.kelas.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends KelasDeleteManyArgs>(args?: SelectSubset<T, KelasDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Kelas.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KelasUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Kelas
+     * const kelas = await prisma.kelas.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends KelasUpdateManyArgs>(args: SelectSubset<T, KelasUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one Kelas.
+     * @param {KelasUpsertArgs} args - Arguments to update or create a Kelas.
+     * @example
+     * // Update or create a Kelas
+     * const kelas = await prisma.kelas.upsert({
+     *   create: {
+     *     // ... data to create a Kelas
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Kelas we want to update
+     *   }
+     * })
+     */
+    upsert<T extends KelasUpsertArgs>(args: SelectSubset<T, KelasUpsertArgs<ExtArgs>>): Prisma__KelasClient<$Result.GetResult<Prisma.$KelasPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of Kelas.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KelasCountArgs} args - Arguments to filter Kelas to count.
+     * @example
+     * // Count the number of Kelas
+     * const count = await prisma.kelas.count({
+     *   where: {
+     *     // ... the filter for the Kelas we want to count
+     *   }
+     * })
+    **/
+    count<T extends KelasCountArgs>(
+      args?: Subset<T, KelasCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], KelasCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Kelas.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KelasAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends KelasAggregateArgs>(args: Subset<T, KelasAggregateArgs>): Prisma.PrismaPromise<GetKelasAggregateType<T>>
+
+    /**
+     * Group by Kelas.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KelasGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends KelasGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: KelasGroupByArgs['orderBy'] }
+        : { orderBy?: KelasGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, KelasGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetKelasGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Kelas model
+   */
+  readonly fields: KelasFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Kelas.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__KelasClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Kelas model
+   */ 
+  interface KelasFieldRefs {
+    readonly id: FieldRef<"Kelas", 'String'>
+    readonly nama: FieldRef<"Kelas", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Kelas findUnique
+   */
+  export type KelasFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Kelas
+     */
+    select?: KelasSelect<ExtArgs> | null
+    /**
+     * Filter, which Kelas to fetch.
+     */
+    where: KelasWhereUniqueInput
+  }
+
+  /**
+   * Kelas findUniqueOrThrow
+   */
+  export type KelasFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Kelas
+     */
+    select?: KelasSelect<ExtArgs> | null
+    /**
+     * Filter, which Kelas to fetch.
+     */
+    where: KelasWhereUniqueInput
+  }
+
+  /**
+   * Kelas findFirst
+   */
+  export type KelasFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Kelas
+     */
+    select?: KelasSelect<ExtArgs> | null
+    /**
+     * Filter, which Kelas to fetch.
+     */
+    where?: KelasWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Kelas to fetch.
+     */
+    orderBy?: KelasOrderByWithRelationInput | KelasOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Kelas.
+     */
+    cursor?: KelasWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Kelas from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Kelas.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Kelas.
+     */
+    distinct?: KelasScalarFieldEnum | KelasScalarFieldEnum[]
+  }
+
+  /**
+   * Kelas findFirstOrThrow
+   */
+  export type KelasFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Kelas
+     */
+    select?: KelasSelect<ExtArgs> | null
+    /**
+     * Filter, which Kelas to fetch.
+     */
+    where?: KelasWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Kelas to fetch.
+     */
+    orderBy?: KelasOrderByWithRelationInput | KelasOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Kelas.
+     */
+    cursor?: KelasWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Kelas from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Kelas.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Kelas.
+     */
+    distinct?: KelasScalarFieldEnum | KelasScalarFieldEnum[]
+  }
+
+  /**
+   * Kelas findMany
+   */
+  export type KelasFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Kelas
+     */
+    select?: KelasSelect<ExtArgs> | null
+    /**
+     * Filter, which Kelas to fetch.
+     */
+    where?: KelasWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Kelas to fetch.
+     */
+    orderBy?: KelasOrderByWithRelationInput | KelasOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Kelas.
+     */
+    cursor?: KelasWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Kelas from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Kelas.
+     */
+    skip?: number
+    distinct?: KelasScalarFieldEnum | KelasScalarFieldEnum[]
+  }
+
+  /**
+   * Kelas create
+   */
+  export type KelasCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Kelas
+     */
+    select?: KelasSelect<ExtArgs> | null
+    /**
+     * The data needed to create a Kelas.
+     */
+    data: XOR<KelasCreateInput, KelasUncheckedCreateInput>
+  }
+
+  /**
+   * Kelas createMany
+   */
+  export type KelasCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Kelas.
+     */
+    data: KelasCreateManyInput | KelasCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Kelas createManyAndReturn
+   */
+  export type KelasCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Kelas
+     */
+    select?: KelasSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many Kelas.
+     */
+    data: KelasCreateManyInput | KelasCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Kelas update
+   */
+  export type KelasUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Kelas
+     */
+    select?: KelasSelect<ExtArgs> | null
+    /**
+     * The data needed to update a Kelas.
+     */
+    data: XOR<KelasUpdateInput, KelasUncheckedUpdateInput>
+    /**
+     * Choose, which Kelas to update.
+     */
+    where: KelasWhereUniqueInput
+  }
+
+  /**
+   * Kelas updateMany
+   */
+  export type KelasUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Kelas.
+     */
+    data: XOR<KelasUpdateManyMutationInput, KelasUncheckedUpdateManyInput>
+    /**
+     * Filter which Kelas to update
+     */
+    where?: KelasWhereInput
+  }
+
+  /**
+   * Kelas upsert
+   */
+  export type KelasUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Kelas
+     */
+    select?: KelasSelect<ExtArgs> | null
+    /**
+     * The filter to search for the Kelas to update in case it exists.
+     */
+    where: KelasWhereUniqueInput
+    /**
+     * In case the Kelas found by the `where` argument doesn't exist, create a new Kelas with this data.
+     */
+    create: XOR<KelasCreateInput, KelasUncheckedCreateInput>
+    /**
+     * In case the Kelas was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<KelasUpdateInput, KelasUncheckedUpdateInput>
+  }
+
+  /**
+   * Kelas delete
+   */
+  export type KelasDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Kelas
+     */
+    select?: KelasSelect<ExtArgs> | null
+    /**
+     * Filter which Kelas to delete.
+     */
+    where: KelasWhereUniqueInput
+  }
+
+  /**
+   * Kelas deleteMany
+   */
+  export type KelasDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Kelas to delete
+     */
+    where?: KelasWhereInput
+  }
+
+  /**
+   * Kelas without action
+   */
+  export type KelasDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Kelas
+     */
+    select?: KelasSelect<ExtArgs> | null
+  }
+
+
+  /**
+   * Model Mapel
+   */
+
+  export type AggregateMapel = {
+    _count: MapelCountAggregateOutputType | null
+    _min: MapelMinAggregateOutputType | null
+    _max: MapelMaxAggregateOutputType | null
+  }
+
+  export type MapelMinAggregateOutputType = {
+    id: string | null
+    nama: string | null
+  }
+
+  export type MapelMaxAggregateOutputType = {
+    id: string | null
+    nama: string | null
+  }
+
+  export type MapelCountAggregateOutputType = {
+    id: number
+    nama: number
+    _all: number
+  }
+
+
+  export type MapelMinAggregateInputType = {
+    id?: true
+    nama?: true
+  }
+
+  export type MapelMaxAggregateInputType = {
+    id?: true
+    nama?: true
+  }
+
+  export type MapelCountAggregateInputType = {
+    id?: true
+    nama?: true
+    _all?: true
+  }
+
+  export type MapelAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Mapel to aggregate.
+     */
+    where?: MapelWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Mapels to fetch.
+     */
+    orderBy?: MapelOrderByWithRelationInput | MapelOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: MapelWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Mapels from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Mapels.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Mapels
+    **/
+    _count?: true | MapelCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: MapelMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: MapelMaxAggregateInputType
+  }
+
+  export type GetMapelAggregateType<T extends MapelAggregateArgs> = {
+        [P in keyof T & keyof AggregateMapel]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateMapel[P]>
+      : GetScalarType<T[P], AggregateMapel[P]>
+  }
+
+
+
+
+  export type MapelGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: MapelWhereInput
+    orderBy?: MapelOrderByWithAggregationInput | MapelOrderByWithAggregationInput[]
+    by: MapelScalarFieldEnum[] | MapelScalarFieldEnum
+    having?: MapelScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: MapelCountAggregateInputType | true
+    _min?: MapelMinAggregateInputType
+    _max?: MapelMaxAggregateInputType
+  }
+
+  export type MapelGroupByOutputType = {
+    id: string
+    nama: string
+    _count: MapelCountAggregateOutputType | null
+    _min: MapelMinAggregateOutputType | null
+    _max: MapelMaxAggregateOutputType | null
+  }
+
+  type GetMapelGroupByPayload<T extends MapelGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<MapelGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof MapelGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], MapelGroupByOutputType[P]>
+            : GetScalarType<T[P], MapelGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type MapelSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    nama?: boolean
+  }, ExtArgs["result"]["mapel"]>
+
+  export type MapelSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    nama?: boolean
+  }, ExtArgs["result"]["mapel"]>
+
+  export type MapelSelectScalar = {
+    id?: boolean
+    nama?: boolean
+  }
+
+
+  export type $MapelPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Mapel"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      nama: string
+    }, ExtArgs["result"]["mapel"]>
+    composites: {}
+  }
+
+  type MapelGetPayload<S extends boolean | null | undefined | MapelDefaultArgs> = $Result.GetResult<Prisma.$MapelPayload, S>
+
+  type MapelCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<MapelFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: MapelCountAggregateInputType | true
+    }
+
+  export interface MapelDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Mapel'], meta: { name: 'Mapel' } }
+    /**
+     * Find zero or one Mapel that matches the filter.
+     * @param {MapelFindUniqueArgs} args - Arguments to find a Mapel
+     * @example
+     * // Get one Mapel
+     * const mapel = await prisma.mapel.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends MapelFindUniqueArgs>(args: SelectSubset<T, MapelFindUniqueArgs<ExtArgs>>): Prisma__MapelClient<$Result.GetResult<Prisma.$MapelPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one Mapel that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {MapelFindUniqueOrThrowArgs} args - Arguments to find a Mapel
+     * @example
+     * // Get one Mapel
+     * const mapel = await prisma.mapel.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends MapelFindUniqueOrThrowArgs>(args: SelectSubset<T, MapelFindUniqueOrThrowArgs<ExtArgs>>): Prisma__MapelClient<$Result.GetResult<Prisma.$MapelPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first Mapel that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MapelFindFirstArgs} args - Arguments to find a Mapel
+     * @example
+     * // Get one Mapel
+     * const mapel = await prisma.mapel.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends MapelFindFirstArgs>(args?: SelectSubset<T, MapelFindFirstArgs<ExtArgs>>): Prisma__MapelClient<$Result.GetResult<Prisma.$MapelPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first Mapel that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MapelFindFirstOrThrowArgs} args - Arguments to find a Mapel
+     * @example
+     * // Get one Mapel
+     * const mapel = await prisma.mapel.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends MapelFindFirstOrThrowArgs>(args?: SelectSubset<T, MapelFindFirstOrThrowArgs<ExtArgs>>): Prisma__MapelClient<$Result.GetResult<Prisma.$MapelPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more Mapels that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MapelFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Mapels
+     * const mapels = await prisma.mapel.findMany()
+     * 
+     * // Get first 10 Mapels
+     * const mapels = await prisma.mapel.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const mapelWithIdOnly = await prisma.mapel.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends MapelFindManyArgs>(args?: SelectSubset<T, MapelFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MapelPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a Mapel.
+     * @param {MapelCreateArgs} args - Arguments to create a Mapel.
+     * @example
+     * // Create one Mapel
+     * const Mapel = await prisma.mapel.create({
+     *   data: {
+     *     // ... data to create a Mapel
+     *   }
+     * })
+     * 
+     */
+    create<T extends MapelCreateArgs>(args: SelectSubset<T, MapelCreateArgs<ExtArgs>>): Prisma__MapelClient<$Result.GetResult<Prisma.$MapelPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many Mapels.
+     * @param {MapelCreateManyArgs} args - Arguments to create many Mapels.
+     * @example
+     * // Create many Mapels
+     * const mapel = await prisma.mapel.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends MapelCreateManyArgs>(args?: SelectSubset<T, MapelCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Mapels and returns the data saved in the database.
+     * @param {MapelCreateManyAndReturnArgs} args - Arguments to create many Mapels.
+     * @example
+     * // Create many Mapels
+     * const mapel = await prisma.mapel.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Mapels and only return the `id`
+     * const mapelWithIdOnly = await prisma.mapel.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends MapelCreateManyAndReturnArgs>(args?: SelectSubset<T, MapelCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MapelPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a Mapel.
+     * @param {MapelDeleteArgs} args - Arguments to delete one Mapel.
+     * @example
+     * // Delete one Mapel
+     * const Mapel = await prisma.mapel.delete({
+     *   where: {
+     *     // ... filter to delete one Mapel
+     *   }
+     * })
+     * 
+     */
+    delete<T extends MapelDeleteArgs>(args: SelectSubset<T, MapelDeleteArgs<ExtArgs>>): Prisma__MapelClient<$Result.GetResult<Prisma.$MapelPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one Mapel.
+     * @param {MapelUpdateArgs} args - Arguments to update one Mapel.
+     * @example
+     * // Update one Mapel
+     * const mapel = await prisma.mapel.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends MapelUpdateArgs>(args: SelectSubset<T, MapelUpdateArgs<ExtArgs>>): Prisma__MapelClient<$Result.GetResult<Prisma.$MapelPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more Mapels.
+     * @param {MapelDeleteManyArgs} args - Arguments to filter Mapels to delete.
+     * @example
+     * // Delete a few Mapels
+     * const { count } = await prisma.mapel.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends MapelDeleteManyArgs>(args?: SelectSubset<T, MapelDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Mapels.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MapelUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Mapels
+     * const mapel = await prisma.mapel.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends MapelUpdateManyArgs>(args: SelectSubset<T, MapelUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one Mapel.
+     * @param {MapelUpsertArgs} args - Arguments to update or create a Mapel.
+     * @example
+     * // Update or create a Mapel
+     * const mapel = await prisma.mapel.upsert({
+     *   create: {
+     *     // ... data to create a Mapel
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Mapel we want to update
+     *   }
+     * })
+     */
+    upsert<T extends MapelUpsertArgs>(args: SelectSubset<T, MapelUpsertArgs<ExtArgs>>): Prisma__MapelClient<$Result.GetResult<Prisma.$MapelPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of Mapels.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MapelCountArgs} args - Arguments to filter Mapels to count.
+     * @example
+     * // Count the number of Mapels
+     * const count = await prisma.mapel.count({
+     *   where: {
+     *     // ... the filter for the Mapels we want to count
+     *   }
+     * })
+    **/
+    count<T extends MapelCountArgs>(
+      args?: Subset<T, MapelCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], MapelCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Mapel.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MapelAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends MapelAggregateArgs>(args: Subset<T, MapelAggregateArgs>): Prisma.PrismaPromise<GetMapelAggregateType<T>>
+
+    /**
+     * Group by Mapel.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MapelGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends MapelGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: MapelGroupByArgs['orderBy'] }
+        : { orderBy?: MapelGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, MapelGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetMapelGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Mapel model
+   */
+  readonly fields: MapelFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Mapel.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__MapelClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Mapel model
+   */ 
+  interface MapelFieldRefs {
+    readonly id: FieldRef<"Mapel", 'String'>
+    readonly nama: FieldRef<"Mapel", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Mapel findUnique
+   */
+  export type MapelFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mapel
+     */
+    select?: MapelSelect<ExtArgs> | null
+    /**
+     * Filter, which Mapel to fetch.
+     */
+    where: MapelWhereUniqueInput
+  }
+
+  /**
+   * Mapel findUniqueOrThrow
+   */
+  export type MapelFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mapel
+     */
+    select?: MapelSelect<ExtArgs> | null
+    /**
+     * Filter, which Mapel to fetch.
+     */
+    where: MapelWhereUniqueInput
+  }
+
+  /**
+   * Mapel findFirst
+   */
+  export type MapelFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mapel
+     */
+    select?: MapelSelect<ExtArgs> | null
+    /**
+     * Filter, which Mapel to fetch.
+     */
+    where?: MapelWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Mapels to fetch.
+     */
+    orderBy?: MapelOrderByWithRelationInput | MapelOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Mapels.
+     */
+    cursor?: MapelWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Mapels from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Mapels.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Mapels.
+     */
+    distinct?: MapelScalarFieldEnum | MapelScalarFieldEnum[]
+  }
+
+  /**
+   * Mapel findFirstOrThrow
+   */
+  export type MapelFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mapel
+     */
+    select?: MapelSelect<ExtArgs> | null
+    /**
+     * Filter, which Mapel to fetch.
+     */
+    where?: MapelWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Mapels to fetch.
+     */
+    orderBy?: MapelOrderByWithRelationInput | MapelOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Mapels.
+     */
+    cursor?: MapelWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Mapels from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Mapels.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Mapels.
+     */
+    distinct?: MapelScalarFieldEnum | MapelScalarFieldEnum[]
+  }
+
+  /**
+   * Mapel findMany
+   */
+  export type MapelFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mapel
+     */
+    select?: MapelSelect<ExtArgs> | null
+    /**
+     * Filter, which Mapels to fetch.
+     */
+    where?: MapelWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Mapels to fetch.
+     */
+    orderBy?: MapelOrderByWithRelationInput | MapelOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Mapels.
+     */
+    cursor?: MapelWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Mapels from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Mapels.
+     */
+    skip?: number
+    distinct?: MapelScalarFieldEnum | MapelScalarFieldEnum[]
+  }
+
+  /**
+   * Mapel create
+   */
+  export type MapelCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mapel
+     */
+    select?: MapelSelect<ExtArgs> | null
+    /**
+     * The data needed to create a Mapel.
+     */
+    data: XOR<MapelCreateInput, MapelUncheckedCreateInput>
+  }
+
+  /**
+   * Mapel createMany
+   */
+  export type MapelCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Mapels.
+     */
+    data: MapelCreateManyInput | MapelCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Mapel createManyAndReturn
+   */
+  export type MapelCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mapel
+     */
+    select?: MapelSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many Mapels.
+     */
+    data: MapelCreateManyInput | MapelCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Mapel update
+   */
+  export type MapelUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mapel
+     */
+    select?: MapelSelect<ExtArgs> | null
+    /**
+     * The data needed to update a Mapel.
+     */
+    data: XOR<MapelUpdateInput, MapelUncheckedUpdateInput>
+    /**
+     * Choose, which Mapel to update.
+     */
+    where: MapelWhereUniqueInput
+  }
+
+  /**
+   * Mapel updateMany
+   */
+  export type MapelUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Mapels.
+     */
+    data: XOR<MapelUpdateManyMutationInput, MapelUncheckedUpdateManyInput>
+    /**
+     * Filter which Mapels to update
+     */
+    where?: MapelWhereInput
+  }
+
+  /**
+   * Mapel upsert
+   */
+  export type MapelUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mapel
+     */
+    select?: MapelSelect<ExtArgs> | null
+    /**
+     * The filter to search for the Mapel to update in case it exists.
+     */
+    where: MapelWhereUniqueInput
+    /**
+     * In case the Mapel found by the `where` argument doesn't exist, create a new Mapel with this data.
+     */
+    create: XOR<MapelCreateInput, MapelUncheckedCreateInput>
+    /**
+     * In case the Mapel was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<MapelUpdateInput, MapelUncheckedUpdateInput>
+  }
+
+  /**
+   * Mapel delete
+   */
+  export type MapelDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mapel
+     */
+    select?: MapelSelect<ExtArgs> | null
+    /**
+     * Filter which Mapel to delete.
+     */
+    where: MapelWhereUniqueInput
+  }
+
+  /**
+   * Mapel deleteMany
+   */
+  export type MapelDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Mapels to delete
+     */
+    where?: MapelWhereInput
+  }
+
+  /**
+   * Mapel without action
+   */
+  export type MapelDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Mapel
+     */
+    select?: MapelSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -15515,6 +17371,22 @@ export namespace Prisma {
   };
 
   export type KunjunganRumahScalarFieldEnum = (typeof KunjunganRumahScalarFieldEnum)[keyof typeof KunjunganRumahScalarFieldEnum]
+
+
+  export const KelasScalarFieldEnum: {
+    id: 'id',
+    nama: 'nama'
+  };
+
+  export type KelasScalarFieldEnum = (typeof KelasScalarFieldEnum)[keyof typeof KelasScalarFieldEnum]
+
+
+  export const MapelScalarFieldEnum: {
+    id: 'id',
+    nama: 'nama'
+  };
+
+  export type MapelScalarFieldEnum = (typeof MapelScalarFieldEnum)[keyof typeof MapelScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -16772,6 +18644,80 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"KunjunganRumah"> | Date | string
   }
 
+  export type KelasWhereInput = {
+    AND?: KelasWhereInput | KelasWhereInput[]
+    OR?: KelasWhereInput[]
+    NOT?: KelasWhereInput | KelasWhereInput[]
+    id?: StringFilter<"Kelas"> | string
+    nama?: StringFilter<"Kelas"> | string
+  }
+
+  export type KelasOrderByWithRelationInput = {
+    id?: SortOrder
+    nama?: SortOrder
+  }
+
+  export type KelasWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    nama?: string
+    AND?: KelasWhereInput | KelasWhereInput[]
+    OR?: KelasWhereInput[]
+    NOT?: KelasWhereInput | KelasWhereInput[]
+  }, "id" | "nama">
+
+  export type KelasOrderByWithAggregationInput = {
+    id?: SortOrder
+    nama?: SortOrder
+    _count?: KelasCountOrderByAggregateInput
+    _max?: KelasMaxOrderByAggregateInput
+    _min?: KelasMinOrderByAggregateInput
+  }
+
+  export type KelasScalarWhereWithAggregatesInput = {
+    AND?: KelasScalarWhereWithAggregatesInput | KelasScalarWhereWithAggregatesInput[]
+    OR?: KelasScalarWhereWithAggregatesInput[]
+    NOT?: KelasScalarWhereWithAggregatesInput | KelasScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"Kelas"> | string
+    nama?: StringWithAggregatesFilter<"Kelas"> | string
+  }
+
+  export type MapelWhereInput = {
+    AND?: MapelWhereInput | MapelWhereInput[]
+    OR?: MapelWhereInput[]
+    NOT?: MapelWhereInput | MapelWhereInput[]
+    id?: StringFilter<"Mapel"> | string
+    nama?: StringFilter<"Mapel"> | string
+  }
+
+  export type MapelOrderByWithRelationInput = {
+    id?: SortOrder
+    nama?: SortOrder
+  }
+
+  export type MapelWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    nama?: string
+    AND?: MapelWhereInput | MapelWhereInput[]
+    OR?: MapelWhereInput[]
+    NOT?: MapelWhereInput | MapelWhereInput[]
+  }, "id" | "nama">
+
+  export type MapelOrderByWithAggregationInput = {
+    id?: SortOrder
+    nama?: SortOrder
+    _count?: MapelCountOrderByAggregateInput
+    _max?: MapelMaxOrderByAggregateInput
+    _min?: MapelMinOrderByAggregateInput
+  }
+
+  export type MapelScalarWhereWithAggregatesInput = {
+    AND?: MapelScalarWhereWithAggregatesInput | MapelScalarWhereWithAggregatesInput[]
+    OR?: MapelScalarWhereWithAggregatesInput[]
+    NOT?: MapelScalarWhereWithAggregatesInput | MapelScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"Mapel"> | string
+    nama?: StringWithAggregatesFilter<"Mapel"> | string
+  }
+
   export type UserCreateInput = {
     id?: string
     userId: string
@@ -17943,6 +19889,76 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type KelasCreateInput = {
+    id?: string
+    nama: string
+  }
+
+  export type KelasUncheckedCreateInput = {
+    id?: string
+    nama: string
+  }
+
+  export type KelasUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nama?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type KelasUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nama?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type KelasCreateManyInput = {
+    id?: string
+    nama: string
+  }
+
+  export type KelasUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nama?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type KelasUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nama?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type MapelCreateInput = {
+    id?: string
+    nama: string
+  }
+
+  export type MapelUncheckedCreateInput = {
+    id?: string
+    nama: string
+  }
+
+  export type MapelUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nama?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type MapelUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nama?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type MapelCreateManyInput = {
+    id?: string
+    nama: string
+  }
+
+  export type MapelUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nama?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type MapelUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nama?: StringFieldUpdateOperationsInput | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -18872,6 +20888,36 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumStatusKunjunganFilter<$PrismaModel>
     _max?: NestedEnumStatusKunjunganFilter<$PrismaModel>
+  }
+
+  export type KelasCountOrderByAggregateInput = {
+    id?: SortOrder
+    nama?: SortOrder
+  }
+
+  export type KelasMaxOrderByAggregateInput = {
+    id?: SortOrder
+    nama?: SortOrder
+  }
+
+  export type KelasMinOrderByAggregateInput = {
+    id?: SortOrder
+    nama?: SortOrder
+  }
+
+  export type MapelCountOrderByAggregateInput = {
+    id?: SortOrder
+    nama?: SortOrder
+  }
+
+  export type MapelMaxOrderByAggregateInput = {
+    id?: SortOrder
+    nama?: SortOrder
+  }
+
+  export type MapelMinOrderByAggregateInput = {
+    id?: SortOrder
+    nama?: SortOrder
   }
 
   export type SessionCreateNestedManyWithoutUserInput = {
@@ -21923,6 +23969,14 @@ export namespace Prisma {
      * @deprecated Use KunjunganRumahDefaultArgs instead
      */
     export type KunjunganRumahArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = KunjunganRumahDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use KelasDefaultArgs instead
+     */
+    export type KelasArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = KelasDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use MapelDefaultArgs instead
+     */
+    export type MapelArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = MapelDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

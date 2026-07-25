@@ -8,12 +8,10 @@ export default async function internalRoutes(fastify) {
 	fastify.get("/internal/sync-data", async (request, reply) => {
 		const syncKey = process.env.SYNC_SECRET_KEY;
 		if (!syncKey) {
-			return reply
-				.code(503)
-				.send({
-					success: false,
-					message: "SYNC_SECRET_KEY tidak dikonfigurasi di server CBT.",
-				});
+			return reply.code(503).send({
+				success: false,
+				message: "SYNC_SECRET_KEY tidak dikonfigurasi di server CBT.",
+			});
 		}
 		if (request.headers["x-sync-key"] !== syncKey) {
 			return reply
@@ -47,6 +45,38 @@ export default async function internalRoutes(fastify) {
 			meta: {
 				totalSiswa: siswaList.length,
 				totalGuru: guruList.length,
+				syncedAt: new Date().toISOString(),
+			},
+		};
+	});
+
+	// GET /internal/sync-master-data — kelas & mapel untuk BK (protected by x-sync-key)
+	fastify.get("/internal/sync-master-data", async (request, reply) => {
+		const syncKey = process.env.SYNC_SECRET_KEY;
+		if (!syncKey) {
+			return reply.code(503).send({
+				success: false,
+				message: "SYNC_SECRET_KEY tidak dikonfigurasi di server CBT.",
+			});
+		}
+		if (request.headers["x-sync-key"] !== syncKey) {
+			return reply.code(403).send({
+				success: false,
+				message: "Kunci sinkronisasi tidak valid.",
+			});
+		}
+
+		const [kelas, mapel] = await Promise.all([
+			prisma.kelas.findMany({ orderBy: { nama: "asc" } }),
+			prisma.mapel.findMany({ orderBy: { nama: "asc" } }),
+		]);
+
+		return {
+			success: true,
+			data: { kelas, mapel },
+			meta: {
+				totalKelas: kelas.length,
+				totalMapel: mapel.length,
 				syncedAt: new Date().toISOString(),
 			},
 		};

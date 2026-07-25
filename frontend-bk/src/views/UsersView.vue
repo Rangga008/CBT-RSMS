@@ -21,18 +21,18 @@
 							<th>Nama</th>
 							<th>Username</th>
 							<th>Role</th>
-							<th>NIP / NISN</th>
+							<th>Kelas / Mapel</th>
 							<th>Aksi</th>
 						</tr>
 					</thead>
 					<tbody>
 						<tr v-for="u in users" :key="u.id">
-							<td class="font-semibold">{{ u.namaLengkap || u.username }}</td>
-							<td class="font-mono text-xs">{{ u.username }}</td>
+							<td class="font-semibold">{{ u.nama || "-" }}</td>
+							<td class="font-mono text-xs">{{ u.userId }}</td>
 							<td>
 								<span :class="roleClass(u.role)">{{ u.role }}</span>
 							</td>
-							<td class="text-xs">{{ u.nip || u.nisn || "-" }}</td>
+							<td class="text-xs">{{ u.kelas || "-" }}</td>
 							<td>
 								<div class="flex gap-2">
 									<button
@@ -134,6 +134,11 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import api from "@/services/api.js";
+import { useToast } from "@/composables/useToast.js";
+import { useConfirm } from "@/composables/useConfirm.js";
+
+const toast = useToast();
+const { confirm } = useConfirm();
 
 const users = ref([]);
 const showModal = ref(false);
@@ -185,15 +190,16 @@ async function saveUser() {
 		showModal.value = false;
 		load();
 	} catch (e) {
-		alert(e.response?.data?.message || "Gagal");
+		toast.error(e.response?.data?.message || "Gagal menyimpan pengguna");
 	} finally {
 		saveLoading.value = false;
 	}
 }
 
 async function deleteUser(id) {
-	if (!confirm("Hapus pengguna ini?")) return;
+	if (!(await confirm("Hapus pengguna ini?"))) return;
 	await api.delete(`/users/${id}`);
+	toast.success("Pengguna berhasil dihapus");
 	load();
 }
 

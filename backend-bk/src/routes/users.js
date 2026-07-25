@@ -39,7 +39,7 @@ export default async function usersRoutes(fastify) {
 			userId: z.string().min(3).max(30),
 			nama: z.string().min(2).max(100),
 			password: z.string().min(6).max(100),
-			role: z.enum(["admin", "bk", "guru"]),
+			role: z.enum(["admin", "bk", "guru", "siswa"]),
 			kelas: z.string().optional(),
 		});
 		const parsed = schema.safeParse(request.body);
@@ -84,7 +84,7 @@ export default async function usersRoutes(fastify) {
 		const schema = z.object({
 			nama: z.string().min(2).max(100).optional(),
 			password: z.string().min(6).max(100).optional(),
-			role: z.enum(["admin", "bk", "guru"]).optional(),
+			role: z.enum(["admin", "bk", "guru", "siswa"]).optional(),
 			kelas: z.string().optional().nullable(),
 			isActive: z.boolean().optional(),
 		});
@@ -126,12 +126,10 @@ export default async function usersRoutes(fastify) {
 	// DELETE /api/v1/users/:id
 	fastify.delete("/users/:id", adminOnly, async (request, reply) => {
 		if (request.user.id === request.params.id) {
-			return reply
-				.code(400)
-				.send({
-					success: false,
-					message: "Tidak bisa menghapus akun sendiri.",
-				});
+			return reply.code(400).send({
+				success: false,
+				message: "Tidak bisa menghapus akun sendiri.",
+			});
 		}
 		await prisma.user
 			.delete({ where: { id: request.params.id } })

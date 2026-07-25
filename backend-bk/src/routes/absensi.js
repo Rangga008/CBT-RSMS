@@ -68,12 +68,10 @@ export default async function absensiRoutes(fastify) {
 				request.user.role === "siswa" &&
 				parsed.data.nisn !== request.user.userId
 			) {
-				return reply
-					.code(403)
-					.send({
-						success: false,
-						message: "Siswa hanya bisa absen diri sendiri.",
-					});
+				return reply.code(403).send({
+					success: false,
+					message: "Siswa hanya bisa absen diri sendiri.",
+				});
 			}
 
 			const result = await processAbsensi(parsed.data.nisn, request.user);
@@ -357,6 +355,26 @@ export default async function absensiRoutes(fastify) {
 			return { success: true };
 		},
 	);
+
+	// ── POST /absensi/scan-kios — no auth, untuk kios QR standalone ──────────
+	fastify.post("/absensi/scan-kios", async (request, reply) => {
+		const { nisn } = request.body || {};
+		if (!nisn)
+			return reply
+				.code(400)
+				.send({ success: false, message: "NISN diperlukan." });
+		// Gunakan system user sebagai scanner (kios mode)
+		const kiosScanner = { userId: "KIOS", role: "kios" };
+		try {
+			const result = await processAbsensi(nisn, kiosScanner);
+			broadcastAbsensi({ ...result.data, siswa: result.data });
+			return result;
+		} catch (e) {
+			return reply
+				.code(400)
+				.send({ success: false, message: e.message || "Gagal absen." });
+		}
+	});
 }
 
 // ── Shared scan logic ─────────────────────────────────────────────────────────
@@ -380,7 +398,7 @@ async function processAbsensi(nisn, scannerUser) {
 		}
 	}
 
-	// Get config
+	// Get config — try both snake_case and camelCase keys
 	const configs = await prisma.appConfig.findMany({
 		where: {
 			key: {
@@ -391,6 +409,11 @@ async function processAbsensi(nisn, scannerUser) {
 					"jam_pulang_akhir",
 					"mode_absen",
 					"jadwal_harian",
+					// camelCase fallbacks (legacy keys)
+					"jamMasuk",
+					"jamPulang",
+					"modeAbsen",
+					"jadwalHarian",
 				],
 			},
 		},
@@ -404,33 +427,39 @@ async function processAbsensi(nisn, scannerUser) {
 		}
 	});
 
+	// Apply camelCase fallbacks if snake_case keys not set
+	if (!cfg.jam_masuk_mulai && cfg.jamMasuk) cfg.jam_masuk_mulai = cfg.jamMasuk;
+	if (!cfg.jam_pulang_mulai && cfg.jamPulang)
+		cfg.jam_pulang_mulai = cfg.jamPulang;
+	if (!cfg.mode_absen && cfg.modeAbsen) cfg.mode_absen = cfg.modeAbsen;
+	if (!cfg.jadwal_harian && cfg.jadwalHarian)
+		cfg.jadwal_harian = cfg.jadwalHarian;
+
 	const now = new Date();
 	const todayStr = now.toISOString().split("T")[0];
 	const nowTime = now.toTimeString().slice(0, 5);
-	const dayIndex = now.getDay() === 0 ? 7 : now.getDay(); // 1=Mon...7=Sun
+	const dayNames = [
+		"Minggu",
+		"Senin",
+		"Selasa",
+		"Rabu",
+		"Kamis",
+		"Jumat",
+		"Sabtu",
+	];
+	const todayName = dayNames[now.getDay()];
 
-	// Check jadwal harian
-	if (cfg.jadwal_harian) {
-		const sched = cfg.jadwal_harian[dayIndex];
-		if (!sched || sched.libur) {
-			const dayNames = {
-				1: "Senin",
-				2: "Selasa",
-				3: "Rabu",
-				4: "Kamis",
-				5: "Jumat",
-				6: "Sabtu",
-				7: "Minggu",
-			};
-			return {
-				success: false,
-				message: `Absensi DITUTUP. Hari ini libur: ${dayNames[dayIndex] || ""}`,
-			};
-		}
-		if (sched.masuk_mulai) cfg.jam_masuk_mulai = sched.masuk_mulai;
-		if (sched.masuk_akhir) cfg.jam_masuk_akhir = sched.masuk_akhir;
-		if (sched.pulang_mulai) cfg.jam_pulang_mulai = sched.pulang_mulai;
-		if (sched.pulang_akhir) cfg.jam_pulang_akhir = sched.pulang_akhir;
+	// Check jadwal harian (array of day names e.g. ["Senin","Selasa","Rabu"])
+	const jadwalHarian = cfg.jadwal_harian;
+	if (
+		Array.isArray(jadwalHarian) &&
+		jadwalHarian.length > 0 &&
+		!jadwalHarian.includes(todayName)
+	) {
+		return {
+			success: false,
+			message: `Absensi DITUTUP. Hari ${todayName} tidak termasuk hari aktif.`,
+		};
 	}
 
 	// Check hari libur

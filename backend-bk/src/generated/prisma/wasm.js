@@ -285,6 +285,16 @@ exports.Prisma.KunjunganRumahScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.KelasScalarFieldEnum = {
+  id: 'id',
+  nama: 'nama'
+};
+
+exports.Prisma.MapelScalarFieldEnum = {
+  id: 'id',
+  nama: 'nama'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -372,7 +382,9 @@ exports.Prisma.ModelName = {
   PoinSiswa: 'PoinSiswa',
   KasusSiswa: 'KasusSiswa',
   LaporanKasus: 'LaporanKasus',
-  KunjunganRumah: 'KunjunganRumah'
+  KunjunganRumah: 'KunjunganRumah',
+  Kelas: 'Kelas',
+  Mapel: 'Mapel'
 };
 
 /**

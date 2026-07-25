@@ -315,3 +315,20 @@ model KunjunganRumah {
   @@index([tanggal])
   @@map("kunjungan_rumah")
 }
+
+// ==========================================
+// MASTER DATA
+// ==========================================
+model Kelas {
+  id   String @id @default(cuid())
+  nama String @unique
+  
+  @@map("kelas")
+}
+
+model Mapel {
+  id   String @id @default(cuid())
+  nama String @unique
+  
+  @@map("mapel")
+}

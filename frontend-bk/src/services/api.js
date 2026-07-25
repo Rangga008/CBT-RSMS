@@ -28,6 +28,10 @@ api.interceptors.response.use(
 	async (error) => {
 		const original = error.config;
 		if (error.response?.status === 401 && !original._retry) {
+			// Never retry auth endpoints — prevents infinite refresh/logout loop
+			if (original.url?.includes("/auth/")) {
+				return Promise.reject(error);
+			}
 			if (isRefreshing) {
 				return new Promise((resolve, reject) => {
 					failedQueue.push({ resolve, reject });
@@ -46,6 +50,7 @@ api.interceptors.response.use(
 				);
 				const auth = useAuthStore();
 				auth.token = data.token;
+				localStorage.setItem("bk_token", data.token);
 				processQueue(null, data.token);
 				original.headers.Authorization = `Bearer ${data.token}`;
 				return api(original);

@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
+import axios from "axios";
 import api from "@/services/api.js";
 import router from "@/router/index.js";
 
@@ -36,15 +37,28 @@ export const useAuthStore = defineStore("auth", () => {
 	}
 
 	async function logout() {
-		try {
-			await api.post("/auth/logout");
-		} catch {
-			/* ignore */
-		}
+		// Clear state FIRST to prevent any retry loops
+		const savedToken = token.value;
 		token.value = "";
 		user.value = null;
 		localStorage.removeItem("bk_token");
 		localStorage.removeItem("bk_user");
+		// Call logout API best-effort using raw axios (bypasses interceptor)
+		if (savedToken) {
+			try {
+				await axios.post(
+					"/api/v1/auth/logout",
+					{},
+					{
+						headers: { Authorization: `Bearer ${savedToken}` },
+						withCredentials: true,
+						timeout: 5000,
+					},
+				);
+			} catch {
+				/* ignore */
+			}
+		}
 		router.push("/login");
 	}
 

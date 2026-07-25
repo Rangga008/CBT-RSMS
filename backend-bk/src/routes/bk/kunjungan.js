@@ -172,7 +172,7 @@ export default async function kunjunganRoutes(fastify) {
 	// DELETE /api/v1/bk/kunjungan/:id
 	fastify.delete(
 		"/bk/kunjungan/:id",
-		{ preHandler: fastify.requireRole(["admin"]) },
+		{ preHandler: fastify.requireRole(["admin", "bk"]) },
 		async (request, reply) => {
 			await prisma.kunjunganRumah
 				.delete({ where: { id: request.params.id } })

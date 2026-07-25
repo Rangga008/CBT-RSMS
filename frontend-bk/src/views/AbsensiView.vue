@@ -165,13 +165,10 @@
 				<!-- Manual Input -->
 				<div v-if="mode === 'manual'" class="flex flex-col sm:flex-row gap-3">
 					<div class="flex-1">
-						<label class="label">NISN Siswa</label>
-						<input
-							v-model="manualNisn"
-							@keyup.enter="submitManual"
-							type="text"
-							class="input"
-							placeholder="Masukkan NISN..."
+						<label class="label">Cari Siswa (Nama / NISN)</label>
+						<SiswaSearch
+							placeholder="Ketik nama atau NISN siswa..."
+							@select="onManualSiswaSelect"
 						/>
 					</div>
 					<div class="flex items-end">
@@ -414,9 +411,10 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from "vue";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { Html5Qrcode } from "html5-qrcode";
 import api from "@/services/api.js";
 import { useAuthStore } from "@/stores/auth.js";
+import SiswaSearch from "@/components/SiswaSearch.vue";
 
 const authStore = useAuthStore();
 
@@ -502,7 +500,9 @@ const statColor = {
 	Alpa: "text-red-700",
 };
 
-let qrScanner = null;
+let qrCodeRef = null;
+let lastScannedNisn = "";
+let lastScannedTime = 0;
 let sseSource = null;
 let resultTimer = null;
 
@@ -556,15 +556,28 @@ async function loadSiswaBatch() {
 async function startScanner() {
 	scannerActive.value = true;
 	await new Promise((r) => setTimeout(r, 100));
-	qrScanner = new Html5QrcodeScanner(
-		"qr-reader",
-		{ fps: 10, qrbox: 250, aspectRatio: 1 },
-		false,
-	);
-	qrScanner.render(
+	const cameras = await Html5Qrcode.getCameras().catch(() => []);
+	if (!cameras.length) {
+		scanResult.value = {
+			success: false,
+			message: "Tidak ada kamera ditemukan.",
+		};
+		scannerActive.value = false;
+		return;
+	}
+	const camId =
+		cameras.find((c) => c.label.toLowerCase().includes("back"))?.id ||
+		cameras[0].id;
+	qrCodeRef = new Html5Qrcode("qr-reader");
+	await qrCodeRef.start(
+		camId,
+		{ fps: 10, qrbox: { width: 250, height: 250 } },
 		async (decodedText) => {
-			qrScanner.clear();
-			scannerActive.value = false;
+			const now = Date.now();
+			if (decodedText === lastScannedNisn && now - lastScannedTime < 3000)
+				return;
+			lastScannedNisn = decodedText;
+			lastScannedTime = now;
 			await processNisn(decodedText);
 		},
 		() => {},
@@ -572,14 +585,24 @@ async function startScanner() {
 }
 
 function stopScanner() {
-	qrScanner?.clear().catch(() => {});
-	scannerActive.value = false;
+	qrCodeRef
+		?.stop()
+		.catch(() => {})
+		.finally(() => {
+			qrCodeRef = null;
+			scannerActive.value = false;
+		});
 }
 
 async function submitManual() {
 	if (!manualNisn.value) return;
 	await processNisn(manualNisn.value.trim());
 	manualNisn.value = "";
+}
+
+async function onManualSiswaSelect(s) {
+	manualNisn.value = s.nisn;
+	await submitManual();
 }
 
 async function processNisn(nisn) {
@@ -636,7 +659,14 @@ async function submitBatch() {
 
 // SSE realtime
 function connectSSE() {
-	sseSource = new EventSource("/api/v1/absensi/stream");
+	const token = authStore.token;
+	const url = token
+		? `/api/v1/absensi/stream?token=${encodeURIComponent(token)}`
+		: "/api/v1/absensi/stream";
+	sseSource = new EventSource(url);
+	sseSource.onerror = () => {
+		/* silently ignore */
+	};
 	sseSource.onmessage = (e) => {
 		try {
 			const payload = JSON.parse(e.data);

@@ -4,6 +4,29 @@ export default async function configRoutes(fastify) {
 	const adminOnly = { preHandler: fastify.requireRole(["admin"]) };
 	const auth = { preHandler: fastify.verifyJWT };
 
+	// GET /api/v1/config/public — no auth, for login page branding
+	fastify.get("/config/public", async () => {
+		const PUBLIC_KEYS = [
+			"appName",
+			"namaSekolah",
+			"logoUrl",
+			"backgroundUrl",
+			"faviconUrl",
+		];
+		const list = await prisma.appConfig.findMany({
+			where: { key: { in: PUBLIC_KEYS } },
+		});
+		const cfg = {};
+		list.forEach((c) => {
+			try {
+				cfg[c.key] = JSON.parse(c.value);
+			} catch {
+				cfg[c.key] = c.value;
+			}
+		});
+		return { success: true, data: cfg };
+	});
+
 	// GET /api/v1/config
 	fastify.get("/config", auth, async () => {
 		const list = await prisma.appConfig.findMany();
@@ -48,12 +71,10 @@ export default async function configRoutes(fastify) {
 	fastify.post("/config/hari-libur", adminOnly, async (request, reply) => {
 		const { tanggal, keterangan } = request.body;
 		if (!tanggal || !keterangan)
-			return reply
-				.code(400)
-				.send({
-					success: false,
-					message: "tanggal dan keterangan wajib diisi.",
-				});
+			return reply.code(400).send({
+				success: false,
+				message: "tanggal dan keterangan wajib diisi.",
+			});
 		const record = await prisma.hariLibur.upsert({
 			where: { tanggal: new Date(tanggal) },
 			update: { keterangan },

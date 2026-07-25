@@ -89,6 +89,14 @@
 					>
 						<i class="fas fa-calendar-check w-4 text-center"></i> Rekap Absensi
 					</router-link>
+					<a
+						href="/#/absensi-kios"
+						target="_blank"
+						class="nav-item text-emerald-600 hover:bg-emerald-50"
+					>
+						<i class="fas fa-tablet-alt w-4 text-center"></i> Kios Absensi
+						<i class="fas fa-external-link-alt text-xs ml-1 opacity-50"></i>
+					</a>
 					<router-link
 						to="/siswa"
 						class="nav-item"
@@ -153,6 +161,14 @@
 						</router-link>
 
 						<p class="nav-section mt-3">Pengaturan</p>
+						<router-link
+							to="/master-data"
+							class="nav-item"
+							:class="{ active: $route.path === '/master-data' }"
+							@click="closeSidebar"
+						>
+							<i class="fas fa-database w-4 text-center"></i> Data Master
+						</router-link>
 						<router-link
 							to="/users"
 							class="nav-item"
@@ -239,6 +255,8 @@
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.js";
+import { useConfirm } from "@/composables/useConfirm.js";
+const { confirm } = useConfirm();
 
 const auth = useAuthStore();
 const route = useRoute();
@@ -268,6 +286,7 @@ const pageTitleMap = {
 	"/bk/jenis-prestasi": "Jenis Prestasi",
 	"/bk/jenis-kasus": "Jenis Kasus",
 	"/users": "Manajemen User",
+	"/master-data": "Data Master",
 	"/config": "Konfigurasi",
 };
 const pageTitle = computed(() => pageTitleMap[route.path] || "SIAP BK RSMS");
@@ -286,7 +305,7 @@ function closeSidebar() {
 }
 
 async function handleLogout() {
-	if (confirm("Yakin ingin keluar?")) await auth.logout();
+	if (await confirm("Yakin ingin keluar?")) await auth.logout();
 }
 
 function connectSSE() {

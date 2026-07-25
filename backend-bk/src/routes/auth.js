@@ -100,12 +100,10 @@ export default async function authRoutes(fastify) {
 
 			const siswa = await prisma.siswa.findUnique({ where: { nisn } });
 			if (!siswa)
-				return reply
-					.code(401)
-					.send({
-						success: false,
-						message: "NISN tidak ditemukan. Hubungi Admin BK.",
-					});
+				return reply.code(401).send({
+					success: false,
+					message: "NISN tidak ditemukan. Hubungi Admin BK.",
+				});
 
 			// Cari atau buat User record untuk siswa ini (auto-create on first login)
 			let user = await prisma.user.findFirst({ where: { userId: nisn } });
@@ -175,18 +173,14 @@ export default async function authRoutes(fastify) {
 	});
 
 	// ── POST /api/v1/auth/logout ──────────────────────────────────────────────
-	fastify.post(
-		"/auth/logout",
-		{ preHandler: fastify.verifyJWT },
-		async (request, reply) => {
-			const token = request.cookies.bk_refresh_token;
-			if (token)
-				await prisma.session.deleteMany({ where: { token } }).catch(() => {});
-			reply.clearCookie("bk_access_token", { path: "/" });
-			reply.clearCookie("bk_refresh_token", { path: "/" });
-			return { success: true };
-		},
-	);
+	fastify.post("/auth/logout", async (request, reply) => {
+		const token = request.cookies.bk_refresh_token;
+		if (token)
+			await prisma.session.deleteMany({ where: { token } }).catch(() => {});
+		reply.clearCookie("bk_access_token", { path: "/" });
+		reply.clearCookie("bk_refresh_token", { path: "/" });
+		return { success: true };
+	});
 
 	// ── GET /api/v1/auth/me ───────────────────────────────────────────────────
 	fastify.get(

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { prisma } from "../lib/db.js";
+import QRCode from "qrcode";
 
 export default async function siswaRoutes(fastify) {
 	const auth = { preHandler: fastify.verifyJWT };
@@ -70,6 +71,42 @@ export default async function siswaRoutes(fastify) {
 			orderBy: { kelas: "asc" },
 		});
 		return { success: true, data: list.map((s) => s.kelas) };
+	});
+
+	// GET /api/v1/siswa/import-template — download CSV template
+	fastify.get("/siswa/import-template", auth, async (request, reply) => {
+		const headers = [
+			"NISN",
+			"Nama",
+			"Kelas",
+			"JenisKelamin",
+			"TanggalLahir",
+			"Agama",
+			"NamaAyah",
+			"NamaIbu",
+			"NoHP",
+			"Alamat",
+		];
+		const example = [
+			"1234567890",
+			"Ahmad Budi Santoso",
+			"X RPL 1",
+			"Laki-laki",
+			"2007-05-15",
+			"Islam",
+			"Budi",
+			"Siti",
+			"08123456789",
+			"Jl. Merdeka No. 1",
+		];
+		const csvContent = [headers.join(","), example.join(",")].join("\r\n");
+		reply
+			.header("Content-Type", "text/csv; charset=utf-8")
+			.header(
+				"Content-Disposition",
+				'attachment; filename="template-import-siswa.csv"',
+			)
+			.send("\uFEFF" + csvContent); // BOM for Excel UTF-8
 	});
 
 	// POST /api/v1/siswa/import — bulk upsert by NISN
@@ -272,4 +309,27 @@ export default async function siswaRoutes(fastify) {
 			};
 		},
 	);
+
+	// GET /api/v1/siswa/:nisn/qr-code — generate QR code PNG
+	fastify.get("/siswa/:nisn/qr-code", auth, async (request, reply) => {
+		const { nisn } = request.params;
+		const siswa = await prisma.siswa.findUnique({
+			where: { nisn },
+			select: { nisn: true, nama: true, kelas: true },
+		});
+		if (!siswa)
+			return reply
+				.code(404)
+				.send({ success: false, message: "Siswa tidak ditemukan." });
+		const qrBuffer = await QRCode.toBuffer(siswa.nisn, {
+			type: "png",
+			width: 300,
+			margin: 2,
+			errorCorrectionLevel: "H",
+		});
+		reply
+			.header("Content-Type", "image/png")
+			.header("Content-Disposition", `inline; filename="qr-${siswa.nisn}.png"`)
+			.send(qrBuffer);
+	});
 }

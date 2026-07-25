@@ -42,7 +42,7 @@ async function main() {
   const adminPass = await bcrypt.hash("admin123", 12);
   await prisma.user.upsert({
     where: { userId: "ADM-001" },
-    update: {},
+    update: { password: adminPass, displayPassword: "admin123", role: "admin", isActive: true },
     create: {
       userId: "ADM-001",
       nama: "Administrator",
@@ -56,7 +56,7 @@ async function main() {
   const bkPass = await bcrypt.hash("bk123456", 12);
   await prisma.user.upsert({
     where: { userId: "BK-001" },
-    update: {},
+    update: { password: bkPass, displayPassword: "bk123456", role: "bk", isActive: true },
     create: {
       userId: "BK-001",
       nama: "Guru BK",

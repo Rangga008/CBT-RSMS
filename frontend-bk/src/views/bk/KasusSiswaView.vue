@@ -369,6 +369,8 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import api from "@/services/api.js";
+import { useToast } from "@/composables/useToast.js";
+const toast = useToast();
 
 const kasusList = ref([]);
 const jenisKasusList = ref([]);
@@ -518,8 +520,10 @@ function openAdd() {
 }
 
 async function saveKasus() {
-	if (!form.value.siswaNisn || !form.value.deskripsi)
-		return alert("Lengkapi data!");
+	if (!form.value.siswaNisn || !form.value.deskripsi) {
+		toast.warn("Lengkapi data!");
+		return;
+	}
 	saveLoading.value = true;
 	try {
 		await api.post("/bk/kasus", {
@@ -531,14 +535,17 @@ async function saveKasus() {
 		loadKasus();
 		loadStats();
 	} catch (e) {
-		alert(e.response?.data?.message || "Gagal");
+		toast.error(e.response?.data?.message || "Gagal");
 	} finally {
 		saveLoading.value = false;
 	}
 }
 
 async function saveLaporan() {
-	if (!laporanForm.value.catatan) return alert("Isi catatan!");
+	if (!laporanForm.value.catatan) {
+		toast.warn("Isi catatan!");
+		return;
+	}
 	laporanLoading.value = true;
 	try {
 		await api.post(
@@ -551,7 +558,7 @@ async function saveLaporan() {
 		loadKasus();
 		loadStats();
 	} catch (e) {
-		alert(e.response?.data?.message || "Gagal");
+		toast.error(e.response?.data?.message || "Gagal");
 	} finally {
 		laporanLoading.value = false;
 	}

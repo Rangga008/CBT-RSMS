@@ -43,6 +43,15 @@ await app.register(fastifyCookie, { secret: process.env.JWT_ACCESS_SECRET });
 await app.register(fastifyJwt, {
 	secret: process.env.JWT_ACCESS_SECRET,
 	cookie: { cookieName: "bk_access_token", signed: false },
+	getToken: (request) => {
+		// Query param (for EventSource/SSE which cannot set headers)
+		if (request.query?.token) return request.query.token;
+		// Authorization header
+		const authHeader = request.headers.authorization;
+		if (authHeader?.startsWith("Bearer ")) return authHeader.slice(7);
+		// Cookie fallback
+		return request.cookies.bk_access_token;
+	},
 });
 
 await app.register(fastifyRateLimit, { max: 300, timeWindow: "1 minute" });
@@ -96,6 +105,8 @@ const routeFiles = [
 	"./routes/bk/dashboard.js",
 	"./routes/sync.js",
 	"./routes/internal.js",
+	"./routes/master-data.js",
+	"./routes/uploads.js",
 ];
 
 for (const routeFile of routeFiles) {

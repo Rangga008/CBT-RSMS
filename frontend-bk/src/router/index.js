@@ -11,6 +11,12 @@ const router = createRouter({
 			meta: { public: true },
 		},
 		{
+			path: "/absensi-kios",
+			name: "absensi-kios",
+			component: () => import("@/views/AbsensiKiosView.vue"),
+			meta: { public: true },
+		},
+		{
 			path: "/",
 			component: () => import("@/layouts/AdminLayout.vue"),
 			meta: { requiresAuth: true },
@@ -32,6 +38,12 @@ const router = createRouter({
 					path: "users",
 					name: "users",
 					component: () => import("@/views/UsersView.vue"),
+					meta: { adminOnly: true },
+				},
+				{
+					path: "master-data",
+					name: "master-data",
+					component: () => import("@/views/MasterDataView.vue"),
 					meta: { adminOnly: true },
 				},
 				{
